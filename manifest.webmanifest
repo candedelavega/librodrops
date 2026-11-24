@@ -1,0 +1,17 @@
+{
+  "name": "Libro DROPS",
+  "short_name": "Libro DROPS",
+  "description": "Inspección DROPS para prevención de caída de objetos en equipos de pulling y workover.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f2a37",
+  "theme_color": "#1f2a37",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
