@@ -1,6 +1,16 @@
 # Libro DROPS
 
-App web instalable de inspección DROPS (prevención de caída de objetos) para equipos de pulling y workover.
+App web instalable de gestión DROPS (prevención de caída de objetos) para equipos de pulling y workover. Sirve para cualquier empresa: los datos de la empresa se cargan en la app.
+
+## Qué hace
+
+- Libro del equipo por zonas, con fijación primaria, retención secundaria y aseguramiento de seguridad de cada componente.
+- Inspección mensual, check list pre montaje, chequeo de colisión, amarre de herramientas e inspección post-evento.
+- Hallazgos con plazo de cierre según el riesgo, foto y firma.
+- Panel de indicadores con lo que hay que resolver primero.
+- Etiquetas QR por componente.
+- Registro de herramientas en altura, zonas rojas, equipos temporarios y caídas de objetos.
+- Exportación a PDF y Excel.
 
 © 2026 Candela de la Vega. Todos los derechos reservados. Ver [LICENSE](LICENSE).
 
