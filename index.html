@@ -405,8 +405,8 @@ const COD_VIEJO={CO:"COR",CE:"DCO",PM:"DPE",LL:"PRL",SC:"SUB",CM:"CAS",PI:"PLA",
 const FLAG_TXT={"dudoso":"Revisar este dato","texto-ambiguo":"Texto a revisar","no-aplica":"Verificar si aplica"};
 const MOTIVOS=["Operación de tijera","Operación de martilleo","Viento fuerte","Enganche o colisión","Sobrecarga","Otro"];
 const RIESGO_TXT={alto:"Riesgo alto",medio:"Riesgo medio",bajo:"Riesgo bajo","":"Sin clasificar"};
-const TIPO_TXT={colision:"Chequeo de colisión",herram:"Amarre de herramientas en altura",rcco:"Inspección mensual",checklist:"Check list pre montaje/desmontaje",post:"Inspección post-evento"};
-const TIPO_MIN={colision:"chequeo de colisión",herram:"chequeo de amarre de herramientas",rcco:"inspección mensual",checklist:"check list pre montaje/desmontaje",post:"inspección post-evento"};
+const TIPO_TXT={colision:"Chequeo de colisión",herram:"Amarre de herramientas en altura",rcco:"Inspección DROPS",checklist:"Check list pre montaje/desmontaje",post:"Inspección post-evento"};
+const TIPO_MIN={colision:"chequeo de colisión",herram:"chequeo de amarre de herramientas",rcco:"inspección DROPS",checklist:"check list pre montaje/desmontaje",post:"inspección post-evento"};
 const LIM_DIAS={alto:2,medio:7,bajo:15,"":7};
 // Sincronización opcional: URL del HTTP trigger de Power Automate (upsert en lista SharePoint por "clave"). Vacía = desactivada.
 const SYNC_URL="";
@@ -517,8 +517,9 @@ const fotoSrc=f=>!f?"":f.asset?"/_blob/"+f.asset:f.data||"";
 /* ============ Estado de interfaz ============ */
 /* ============ Datos de la empresa (configurables) ============ */
 const EKEY="libroDrops.empresa";
-let EMP={nombre:"",mensual:"Inspección mensual",codMensual:"",codChecklist:"",codPost:""};
+let EMP={nombre:"",mensual:"Inspección DROPS",codMensual:"",codChecklist:"",codPost:""};
 try{Object.assign(EMP,JSON.parse(localStorage.getItem(EKEY)||"{}"))}catch(e){}
+if(EMP.mensual==="Inspección mensual")EMP.mensual="Inspección DROPS";
 const UI={animZonas:true,todos:false,obsOpen:new Set(),open:new Set(),tab:"equipo",equipo:null,zona:null,insp:null,hfilter:"abiertos",sheet:null,calc:{m:"1",h:"4.56"},inspector:""};
 try{UI.inspector=localStorage.getItem("libroDrops.inspector")||"";UI.equipo=localStorage.getItem("libroDrops.equipo")||null}catch(e){}
 function setEquipo(id){UI.equipo=id;try{localStorage.setItem("libroDrops.equipo",id)}catch(e){}}
@@ -616,7 +617,7 @@ function guardarLibro(lb){lb.actualizado=new Date().toISOString();put("libros",l
 function inspFicha(eq,crear,zid){
   let i=insps(eq).find(x=>x.estado==="abierta"&&!esLista(x.tipo));
   if(!i&&crear){if(insps(eq).some(x=>x.estado==="abierta")){toast("Hay un check list abierto. Cerralo para registrar desde las fichas.");return null}
-    i=nuevaInspeccion("rcco","",false);toast("Se inició una inspección mensual con este registro.")}
+    i=nuevaInspeccion("rcco","",false);toast("Se inició una inspección DROPS con este registro.")}
   if(i&&zid&&!i.zonas.includes(zid)){i.zonas.push(zid);put("inspecciones",i)}
   return i||null;
 }
@@ -700,7 +701,7 @@ function vTodos(){
     const inc=lb.zonas.reduce((a,z)=>a+z.items.filter(fichaIncompleta).length,0),sec=lb.zonas.reduce((a,z)=>a+z.items.filter(sinSec).length,0);
     return `<tr data-act="irEq" data-v="${e.id}" style="cursor:pointer"><td><b>${esc(e.nombre)}</b></td><td>${est}</td><td class="n ${hs.length?"r":""}">${hs.length}</td><td class="n ${venc?"r":""}">${venc}</td><td class="n">${inc}</td><td class="n">${sec}</td></tr>`}).join("");
   return `<h1>Todos los equipos</h1><p class="small muted">Tocá un equipo para abrir su libro.</p>
-  <div class="tqwrap" style="margin-top:12px"><table class="tq"><thead><tr><th>Equipo</th><th>Inspección del mes</th><th>Hallazgos abiertos</th><th>Vencidos</th><th>Fichas incompletas</th><th>Sin ret. secundaria</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+  <div class="tqwrap" style="margin-top:12px"><table class="tq"><thead><tr><th>Equipo</th><th>Inspección DROPS del mes</th><th>Hallazgos abiertos</th><th>Vencidos</th><th>Fichas incompletas</th><th>Sin ret. secundaria</th></tr></thead><tbody>${filas}</tbody></table></div>`;
 }
 function vOnboarding(){
   return `<div class="stack" style="padding-top:20px">
@@ -736,8 +737,8 @@ function vEquipo(eq){
   <div class="row between wrapflex"><h1>${esc(eq.nombre)}</h1><span class="row"><button class="btn btn3d" data-act="v3d">${ICON3D}Ver en 3D</button><button class="link small" data-act="sheet" data-v="libroInfo">Datos del libro</button></span></div>
   ${abierta?`<button class="choice" data-act="continuar" data-v="${abierta.id}" style="border-left-color:var(--amber);margin-top:12px"><h3>Continuar ${TIPO_MIN[abierta.tipo]}</h3><span class="small muted">Iniciada el ${fmtF(abierta.creada)}${av?` · ${av.hechos} de ${av.total} componentes revisados`:""}</span></button>`:""}
   <div class="summary">
-    ${rcco&&rcco.tipo==="rcco"?`<div><b><i class="cnt" data-count="${av.hechos}">${av.hechos}</i>/${av.total}</b><span>Inspección mensual en curso · desde ${fmtF(rcco.creada)}</span></div>`:
-    `<div class="${vence!==null&&vence<0||!u?"due":""}"><b>${u?(vence<0?"Vencida":`<i class="cnt" data-count="${vence}">${vence}</i> d`):"Sin hacer"}</b><span>${u?`Inspección mensual · última ${fmtF(u.fechaFin)}`:"Inspección mensual"}</span></div>`}
+    ${rcco&&rcco.tipo==="rcco"?`<div><b><i class="cnt" data-count="${av.hechos}">${av.hechos}</i>/${av.total}</b><span>Inspección DROPS en curso · desde ${fmtF(rcco.creada)}</span></div>`:
+    `<div class="${vence!==null&&vence<0||!u?"due":""}"><b>${u?(vence<0?"Vencida":`<i class="cnt" data-count="${vence}">${vence}</i> d`):"Sin hacer"}</b><span>${u?`Inspección DROPS · última ${fmtF(u.fechaFin)}`:"Inspección DROPS"}</span></div>`}
     <div class="${abiertos.length?"due":""}"><b data-count="${abiertos.length}">${abiertos.length}</b><span>hallazgos abiertos</span></div>
     <div><b data-count="${total}">${total}</b><span>ítems${inc?` · ${inc} a completar`:""}${sec?` · ${sec} sin ret. secundaria`:""}</span></div>
   </div>
@@ -762,7 +763,7 @@ function vZona(eq){
   <div class="row between wrapflex" style="margin:8px 0 4px"><h1>${esc(z.nombre)}</h1><span class="chip ${z.riesgo}">${RIESGO_TXT[z.riesgo||""]}</span></div>
   <button class="choice" data-act="sheet" data-v="acceso:${z.id}" style="border-left-color:var(--${z.acceso==="roja"?"red":z.acceso==="verde"?"green":"line"});padding:10px 14px"><h3>${z.acceso==="roja"?"Zona roja: ingreso solo con autorización":z.acceso==="verde"?"Zona verde: ingreso libre":"Acceso a la zona sin definir"}</h3><span class="small muted">${z.acceso==="roja"?(z.autoriza?`Autoriza: ${esc(z.autoriza)}`:"Falta definir quién autoriza el ingreso"):"Tocá para definir si es zona roja"}</span></button>
   <p class="small muted">${z.items.length} componentes. Los códigos coinciden con los puntos DROPS del modelo 3D. <button class="link" data-act="v3d" data-z="${z.id}">Ver la zona en 3D</button> · <button class="link" data-act="qr" data-v="${z.id}">Etiquetas QR de la zona</button></p>
-  <div class="banner" style="margin-top:10px;background:var(--surface);border-color:var(--line)">${fichaInsp?`Lo que marques acá se registra en la ${TIPO_MIN[fichaInsp.tipo]} iniciada el ${fmtF(fichaInsp.creada)}. <button class="link" data-act="continuar" data-v="${fichaInsp.id}">Ir a la inspección</button>`:hayCk?"Hay un check list abierto: cerralo para registrar desde las fichas.":"Al marcar Bien, Mal o No corresponde se inicia una inspección mensual."}</div>
+  <div class="banner" style="margin-top:10px;background:var(--surface);border-color:var(--line)">${fichaInsp?`Lo que marques acá se registra en la ${TIPO_MIN[fichaInsp.tipo]} iniciada el ${fmtF(fichaInsp.creada)}. <button class="link" data-act="continuar" data-v="${fichaInsp.id}">Ir a la inspección</button>`:hayCk?"Hay un check list abierto: cerralo para registrar desde las fichas.":"Al marcar Bien, Mal o No corresponde se inicia una inspección DROPS."}</div>
   <div style="margin-top:12px">
   ${z.items.map(it=>{const ue=ultimoEstado(eq,it.id);const rec=recurrencia(eq,it.id);const cons=consecuencia(it.masa,it.altura);
     return `<article class="item" id="it_${it.id}">
@@ -801,7 +802,7 @@ function vInspeccionar(eq){
   ${(()=>{const rs=regs(eq).filter(r=>r.estado==="abierto");return rs.map(r=>`<button class="choice" data-act="sheet" data-v="reg:${r.id}" style="border-left-color:var(--red);margin-top:12px"><h3>Herramientas en altura: ${arriba(r).length} arriba</h3><span class="small muted">${esc(r.tarea||"Sin tarea")} · ${esc(r.persona||"")} · desde ${fmtF(r.creado)}. Tocá para registrar lo que baja.</span></button>`).join("")})()}
   ${S.readOnly?"":`<div style="margin-top:12px">
   <button class="choice" data-act="nuevoReg" style="border-left-color:var(--amber)"><h3>Registro de herramientas en altura</h3><span class="small muted">Anotá lo que sube y tildá lo que baja. Al final confirma que no quedó nada arriba.</span></button>
-  <button class="choice" data-act="nueva" data-v="rcco"><h3>${esc(EMP.mensual||"Inspección mensual")}</h3><span class="small muted">Recorre las ${lb.zonas.length} zonas del libro. Cada componente se marca Bien, Mal o No corresponde.</span></button>
+  <button class="choice" data-act="nueva" data-v="rcco"><h3>${esc(EMP.mensual||"Inspección DROPS")}</h3><span class="small muted">Una vez por mes. Recorre las ${lb.zonas.length} zonas del libro y cada componente se marca Bien, Mal o No corresponde.</span></button>
   ${Object.entries(LISTAS).map(([k,L])=>`<button class="choice" data-act="nueva" data-v="${k}"><h3>${L.t}</h3><span class="small muted">${L.q.length} puntos. ${L.d}</span></button>`).join("")}
   <button class="choice" data-act="sheet" data-v="post"><h3>Inspección post-evento</h3><span class="small muted">Solo las zonas del mástil, después de tijera, martilleo, viento fuerte o un enganche.</span></button>
   </div>`}
@@ -957,10 +958,10 @@ function vPanel(eq){
   const pl=(n,a,b)=>n===1?a:b;
   const acc=[];
   if(venc.length)acc.push({t:`Cerrar ${venc.length} ${pl(venc.length,"hallazgo vencido","hallazgos vencidos")}`,d:"Ya pasaron su fecha límite.",a:"irHall",v:"vencidos",c:"mal"});
-  if(enCurso)acc.push({t:"Terminar la inspección mensual en curso",d:`Iniciada el ${fmtF(enCurso.creada)}.`,a:"continuar",v:enCurso.id,c:"warn"});
-  else if(!u)acc.push({t:"Hacer la primera inspección mensual",d:"Todavía no hay ninguna cerrada.",a:"tab",v:"inspeccion",c:"mal"});
-  else if(vence<0)acc.push({t:"Hacer la inspección mensual",d:`Venció hace ${-vence} ${pl(-vence,"día","días")}.`,a:"tab",v:"inspeccion",c:"mal"});
-  else if(vence<=5)acc.push({t:"Programar la inspección mensual",d:`Vence en ${vence} ${pl(vence,"día","días")}.`,a:"tab",v:"inspeccion",c:"warn"});
+  if(enCurso)acc.push({t:"Terminar la inspección DROPS en curso",d:`Iniciada el ${fmtF(enCurso.creada)}.`,a:"continuar",v:enCurso.id,c:"warn"});
+  else if(!u)acc.push({t:"Hacer la primera inspección DROPS",d:"Todavía no hay ninguna cerrada.",a:"tab",v:"inspeccion",c:"mal"});
+  else if(vence<0)acc.push({t:"Hacer la inspección DROPS",d:`Venció hace ${-vence} ${pl(-vence,"día","días")}.`,a:"tab",v:"inspeccion",c:"mal"});
+  else if(vence<=5)acc.push({t:"Programar la inspección DROPS",d:`Vence en ${vence} ${pl(vence,"día","días")}.`,a:"tab",v:"inspeccion",c:"warn"});
   if(sec.length)acc.push({t:`Revisar ${sec.length} ${pl(sec.length,"componente","componentes")} de riesgo alto sin retención secundaria`,d:"Si falla la fijación primaria, nada evita la caída.",a:"irZonaP",v:sec[0].id,c:"mal"});
   const regAb=regs(eq).filter(r=>r.estado==="abierto"),herrArriba=regAb.reduce((a,r)=>a+arriba(r).length,0);
   if(regAb.length)acc.push({t:`Hay ${herrArriba} ${pl(herrArriba,"herramienta","herramientas")} en altura`,d:"Cuando bajen, cerrá el registro.",a:"sheet",v:"reg:"+regAb[0].id,c:"warn"});
@@ -986,7 +987,7 @@ function vPanel(eq){
   ${acc.map(x=>`<button class="choice" data-act="${x.a}" data-v="${esc(x.v)}" style="border-left-color:var(--${x.c==="mal"?"red":"amber"})"><h3>${esc(x.t)}</h3><span class="small muted">${esc(x.d)}</span></button>`).join("")}
   <h2 style="margin-top:18px">Indicadores</h2>
   <div class="kgrid">
-    <button class="k ${!u||vence<0?"mal":""}" data-act="tab" data-v="inspeccion"><b>${enCurso?"En curso":!u?"Sin hacer":vence<0?"Vencida":vence+" d"}</b><span>${!u||vence<0||enCurso?"Inspección mensual":"Para la próxima inspección mensual"}</span></button>
+    <button class="k ${!u||vence<0?"mal":""}" data-act="tab" data-v="inspeccion"><b>${enCurso?"En curso":!u?"Sin hacer":vence<0?"Vencida":vence+" d"}</b><span>${!u||vence<0||enCurso?"Inspección DROPS":"Para la próxima inspección DROPS"}</span></button>
     <button class="k ${venc.length?"mal":""}" data-act="irHall" data-v="${venc.length?"vencidos":"abiertos"}"><b>${ab.length}</b><span>Hallazgos abiertos${venc.length?` · ${venc.length} ${pl(venc.length,"vencido","vencidos")}`:""}</span></button>
     <button class="k" data-act="irHall" data-v="cerrados"><b>${prom===null?"—":prom+" d"}</b><span>Tiempo promedio para cerrar un hallazgo</span></button>
     <button class="k ${plazo!==null&&plazo<80?"mal":""}" data-act="irHall" data-v="cerrados"><b>${plazo===null?"—":plazo+" %"}</b><span>Hallazgos cerrados dentro del plazo</span></button>
@@ -1097,7 +1098,7 @@ function vSheet(eq){
     ${S.readOnly?"":`<div class="row wrapflex" style="margin-top:14px"><button class="btn danger" data-act="borrarCaida" data-v="${c.id}">Borrar registro</button></div>`}`}
   if(s==="empresa")return `<h2>Datos de la empresa</h2><p class="small muted">Se usan en los encabezados y en los PDF. Dejá vacío lo que no uses.</p>
     <label class="f" for="emN">Nombre de la empresa</label><input class="t" id="emN" value="${esc(EMP.nombre)}" autocomplete="off">
-    <label class="f" for="emM">Nombre de la inspección mensual</label><input class="t" id="emM" value="${esc(EMP.mensual)}" autocomplete="off">
+    <label class="f" for="emM">Nombre de la inspección DROPS</label><input class="t" id="emM" value="${esc(EMP.mensual)}" autocomplete="off">
     <label class="f" for="emC1">Código del formulario mensual</label><input class="t" id="emC1" value="${esc(EMP.codMensual)}" placeholder="Opcional" autocomplete="off">
     <label class="f" for="emC2">Código del check list</label><input class="t" id="emC2" value="${esc(EMP.codChecklist)}" placeholder="Opcional" autocomplete="off">
     <label class="f" for="emC3">Código de la inspección post-evento</label><input class="t" id="emC3" value="${esc(EMP.codPost)}" placeholder="Opcional" autocomplete="off">
@@ -1145,7 +1146,7 @@ function vSheet(eq){
     ${fld("criterio","Qué verificar en la inspección","")}
     <label class="f" for="d_comp">Componente del equipo (peligros y controles)</label><select class="t" id="d_comp" data-draft="comp"><option value="">Sin asociar</option>${Object.entries(COMPONENTES).map(([k,c])=>`<option value="${k}" ${d.comp===k?"selected":""}>${esc(c.name)}</option>`).join("")}</select>
     <label class="f" for="d_riesgo">Clasificación según riesgo</label><select class="t" id="d_riesgo" data-draft="riesgo">${["alto","medio","bajo",""].map(k=>`<option value="${k}" ${d.riesgo===k?"selected":""}>${RIESGO_TXT[k]}</option>`).join("")}</select>
-    <label class="f" for="d_frec">Frecuencia de control</label><select class="t" id="d_frec" data-draft="frec">${[["","Mensual (con la inspección mensual)"],["semanal","Semanal"],["diaria","Diaria"]].map(([k,t])=>`<option value="${k}" ${(d.frec||"")===k?"selected":""}>${t}</option>`).join("")}</select>
+    <label class="f" for="d_frec">Frecuencia de control</label><select class="t" id="d_frec" data-draft="frec">${[["","Mensual (con la inspección DROPS)"],["semanal","Semanal"],["diaria","Diaria"]].map(([k,t])=>`<option value="${k}" ${(d.frec||"")===k?"selected":""}>${t}</option>`).join("")}</select>
     <div class="row" style="gap:10px"><div style="flex:1"><label class="f" for="d_temp">¿Equipo temporario?</label><select class="t" id="d_temp" data-draft="temp"><option value="">No</option><option value="si" ${d.temp==="si"?"selected":""}>Sí, se retira después</option></select></div>
       <div style="flex:1"><label class="f" for="d_ret">Fecha de retiro</label><input class="t" type="date" id="d_ret" data-draft="retiro" value="${esc(d.retiro||"")}"></div></div>
     <div class="row" style="gap:10px"><div style="flex:1"><label class="f" for="d_masa">Masa aprox. (kg)</label><input class="t" id="d_masa" inputmode="decimal" data-draft="masa" value="${esc(d.masa)}"></div>
@@ -1189,7 +1190,7 @@ async function exportarPDF(id){
   const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
   const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();
   const ROJO=[191,47,27],ACERO=[52,69,77];
-  const cod=x=>x?" - "+x:"";const titulo=i.tipo==="rcco"?(EMP.mensual||"Inspección mensual").toUpperCase()+" DE CAÍDA DE OBJETOS"+cod(EMP.codMensual):i.tipo==="checklist"?"CHECK LIST DE CAÍDA DE OBJETOS"+cod(EMP.codChecklist):esLista(i.tipo)?LISTAS[i.tipo].t.toUpperCase():"INSPECCIÓN POST-EVENTO DE CAÍDA DE OBJETOS"+cod(EMP.codPost);
+  const cod=x=>x?" - "+x:"";const titulo=i.tipo==="rcco"?(EMP.mensual||"Inspección DROPS").toUpperCase()+" DE CAÍDA DE OBJETOS"+cod(EMP.codMensual):i.tipo==="checklist"?"CHECK LIST DE CAÍDA DE OBJETOS"+cod(EMP.codChecklist):esLista(i.tipo)?LISTAS[i.tipo].t.toUpperCase():"INSPECCIÓN POST-EVENTO DE CAÍDA DE OBJETOS"+cod(EMP.codPost);
   const estadoTxt={bien:"Bien",mal:"Mal",nc:"No corresponde"};
   const cab=()=>{doc.setFillColor(...ROJO);doc.rect(0,0,W,12,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfTxt(titulo),10,8);
     doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(pdfTxt((EMP.nombre?EMP.nombre+" · ":"")+eq.nombre),W-10,8,{align:"right"});doc.setTextColor(30)};
@@ -1242,7 +1243,7 @@ async function exportarPDF(id){
   const n=doc.getNumberOfPages();
   for(let k=1;k<=n;k++){doc.setPage(k);doc.setFontSize(7.5);doc.setTextColor(110);
     doc.text(pdfTxt(`Generado con Libro DROPS el ${new Date().toLocaleString("es-AR")}`),8,H-6);doc.text(`Página ${k} de ${n}`,W-8,H-6,{align:"right"})}
-  const nombre=`${i.tipo==="rcco"?"Inspeccion_mensual":i.tipo==="checklist"?"Checklist":esLista(i.tipo)?(i.tipo==="colision"?"Chequeo_colision":"Amarre_herramientas"):"Post_evento"}_${eq.nombre}_${i.fecha}.pdf`.replace(/[^\w.\-]/g,"_");
+  const nombre=`${i.tipo==="rcco"?"Inspeccion_DROPS":i.tipo==="checklist"?"Checklist":esLista(i.tipo)?(i.tipo==="colision"?"Chequeo_colision":"Amarre_herramientas"):"Post_evento"}_${eq.nombre}_${i.fecha}.pdf`.replace(/[^\w.\-]/g,"_");
   await guardarArchivo(nombre,doc.output("blob"));
 }
 async function csvHallazgos(){
@@ -1526,7 +1527,7 @@ document.addEventListener("click",e=>{
     case"qr":etiquetasQR(eq,v);return;
     case"irCodigo":{const c=($("#buscaCod").value||"").trim().toUpperCase();if(!c)return;const lb=libro(eq);let zz=null,ii=null;lb.zonas.forEach(z=>z.items.forEach(it=>{if(codigo(eq,z,it).toUpperCase()===c){zz=z;ii=it}}));
       if(!zz){toast("No hay ningún componente con el código "+c+".");return}UI.zona=zz.id;UI.irItem=ii.id;break}
-    case"guardarEmpresa":{const g=id=>($(id).value||"").trim();EMP={nombre:g("#emN"),mensual:g("#emM")||"Inspección mensual",codMensual:g("#emC1"),codChecklist:g("#emC2"),codPost:g("#emC3"),url:g("#emU"),inspectores:g("#emI").split("\n").map(l=>l.split(";")).map(([n,v])=>({n:(n||"").trim(),vence:(v||"").trim()})).filter(p=>p.n)};try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(e){}UI.sheet=null;toast("Datos de la empresa guardados.");break}
+    case"guardarEmpresa":{const g=id=>($(id).value||"").trim();EMP={nombre:g("#emN"),mensual:g("#emM")||"Inspección DROPS",codMensual:g("#emC1"),codChecklist:g("#emC2"),codPost:g("#emC3"),url:g("#emU"),inspectores:g("#emI").split("\n").map(l=>l.split(";")).map(([n,v])=>({n:(n||"").trim(),vence:(v||"").trim()})).filter(p=>p.n)};try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(e){}UI.sheet=null;toast("Datos de la empresa guardados.");break}
     case"renombrar":{const n=($("#rnEq").value||"").trim();if(!n)return;eq.nombre=n;put("equipos",eq);UI.sheet=null;toast("Nombre guardado.");break}
     case"borrarEquipo":if(!confirm(`¿Borrar ${eq.nombre} con su libro, inspecciones y hallazgos? No se puede deshacer.`))return;
       insps(eq).forEach(i=>del("inspecciones",i.id));hallz(eq).forEach(h=>del("hallazgos",h.id));del("libros",eq.id);del("equipos",eq.id);UI.sheet=null;UI.equipo=null;break;

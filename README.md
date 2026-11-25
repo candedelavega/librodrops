@@ -5,7 +5,7 @@ App web instalable de gestión DROPS (prevención de caída de objetos) para equ
 ## Qué hace
 
 - Libro del equipo por zonas, con fijación primaria, retención secundaria y aseguramiento de seguridad de cada componente.
-- Inspección mensual, check list pre montaje, chequeo de colisión, amarre de herramientas e inspección post-evento.
+- Inspección DROPS (mensual), check list pre montaje, chequeo de colisión, amarre de herramientas e inspección post-evento.
 - Hallazgos con plazo de cierre según el riesgo, foto y firma.
 - Panel de indicadores con lo que hay que resolver primero.
 - Etiquetas QR por componente.
