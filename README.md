@@ -10,6 +10,7 @@ App web instalable de gestión DROPS (prevención de caída de objetos) para equ
 - Panel de indicadores con lo que hay que resolver primero.
 - Etiquetas QR por componente.
 - Registro de herramientas en altura, zonas rojas, equipos temporarios y caídas de objetos.
+- Capacitación: calculadora de consecuencia, animación de las 3 barreras y charla de 5 minutos con firmas.
 - Exportación a PDF y Excel.
 
 © 2026 Candela de la Vega. Todos los derechos reservados. Ver [LICENSE](LICENSE).

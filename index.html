@@ -148,6 +148,35 @@ main a{color:var(--steel);font-weight:600}
 .kmes i{display:block;width:70%;background:var(--steel);border-radius:4px 4px 0 0;min-height:2px}
 .kmes b{color:var(--ink);font-family:var(--display);font-size:.95rem}
 .flash{animation:flash 2.4s ease-out}
+.barcards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
+.barcards div{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--steel);border-radius:8px;padding:8px;font-size:.78rem;color:var(--muted)}
+.barcards b{display:block;color:var(--ink);font-size:.85rem;margin-bottom:2px}
+.barsvg{width:100%;max-width:420px;display:block;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.barsvg .obj{transform-box:fill-box;transform-origin:50% 0}
+.barsvg .sling{transform-box:fill-box;transform-origin:50% 0}
+.barsvg .perno,.barsvg .vib,.barsvg .impacto{transform-box:fill-box;transform-origin:50% 50%}
+.barsvg .impacto{opacity:0}
+.bar-run .vib{animation:bvibra .1s linear 9}
+.s-falla .perno{animation:bperno .7s ease-in 1s forwards}
+.s-eslinga .obj{animation:bcuelga 1.8s ease-out 1.5s forwards}
+.s-eslinga .sling{animation:bestira .35s ease-in 1.5s forwards}
+.s-cae .obj{animation:bcae .75s cubic-bezier(.55,0,1,.45) 1.5s forwards}
+.s-cae .impacto{animation:bimpacto .6s ease-out 2.2s forwards}
+.s-ok .traba{animation:bbrilla 1s ease 1s 2}
+@keyframes bvibra{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+@keyframes bperno{to{transform:translateY(150px) rotate(120deg);opacity:0}}
+@keyframes bcuelga{0%{transform:translateY(0)}25%{transform:translateY(24px) rotate(0)}45%{transform:translateY(24px) rotate(7deg)}65%{transform:translateY(24px) rotate(-5deg)}82%{transform:translateY(24px) rotate(2deg)}100%{transform:translateY(24px) rotate(0)}}
+@keyframes bestira{to{transform:scaleY(1.8)}}
+@keyframes bcae{to{transform:translateY(128px)}}
+@keyframes bimpacto{0%{opacity:0;transform:scale(.3)}40%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes bbrilla{50%{fill:var(--green);r:7}}
+.barmsg{opacity:0;animation:baparece .4s ease forwards}
+@keyframes baparece{to{opacity:1}}
+.chcard{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--steel);border-radius:8px;padding:16px;min-height:200px;animation:chentra .35s ease-out}
+.chcard h2{margin:0 0 8px}.chcard p,.chcard li{font-size:1.02rem;line-height:1.45}
+@keyframes chentra{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.chdots{display:flex;gap:6px;justify-content:center;margin:10px 0}.chdots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.chdots i.on{background:var(--ink)}
+@media (prefers-reduced-motion:reduce){.barsvg *,.barmsg,.chcard{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
 
 /* Hallazgos */
@@ -418,15 +447,16 @@ const PUNTOS3D={"DPE-1":[-0.683,3.911,0.853],"DPE-2":[-0.67,5.333,-0.833],"DPE-3
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-const hoy=()=>new Date().toISOString().slice(0,10);
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const hoy=()=>ymd(new Date());
 const fmtF=iso=>{if(!iso)return"—";const d=new Date(iso.length<=10?iso+"T12:00:00":iso);return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"})};
 const dias=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
 const clone=o=>JSON.parse(JSON.stringify(o));
 function toast(msg){const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ Almacenamiento ============ */
-const COLS=["equipos","libros","inspecciones","hallazgos","registros","caidas"];
-const S={mode:"cargando",db:null,assets:null,downloads:null,readOnly:false,data:{equipos:{},libros:{},inspecciones:{},hallazgos:{},registros:{},caidas:{}}};
+const COLS=["equipos","libros","inspecciones","hallazgos","registros","caidas","charlas"];
+const S={mode:"cargando",db:null,assets:null,downloads:null,readOnly:false,data:{equipos:{},libros:{},inspecciones:{},hallazgos:{},registros:{},caidas:{},charlas:{}}};
 const LKEY="libroDrops.v1";
 const timers={},inflight={},queued={};
 function localSave(){if(S.mode!=="local")return;try{localStorage.setItem(LKEY,JSON.stringify(S.data))}catch(e){toast("No hay más espacio en este navegador. Borrá fotos o usá la versión publicada.")}}
@@ -576,7 +606,7 @@ const GUIA=[
 ];
 function vGuia(it,key){const txt=[it.primaria,it.secundaria,it.seguridad,it.criterio].join(" ");const gs=GUIA.filter(g=>g.re.test(txt));if(!gs.length)return"";
   return det("gui:"+key,"Cómo verificar la fijación",gs.map(g=>`<h4>${g.t}</h4><ul class="small">${g.ok.map(x=>`<li>✔ ${esc(x)}</li>`).join("")}${g.no.map(x=>`<li style="color:var(--red)">✘ ${esc(x)}</li>`).join("")}</ul>`).join("")+`<p class="small muted">Ante la duda, marcá Mal y sacá una foto.</p>`)}
-function sumarDias(n){const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function sumarDias(n){const d=new Date();d.setDate(d.getDate()+n);return ymd(d)}
 function vencTxt(h){if(h.estado!=="abierto")return"";if(!h.fechaLimite)return`<span class="falta">Sin fecha límite</span>`;
   const n=dias(hoy()+"T12:00:00",h.fechaLimite+"T12:00:00");
   return n<0?`<span class="venc">Vencido hace ${-n} d</span>`:n===0?`<span class="venc">Vence hoy</span>`:`<span class="${n<=2?"venc":"vok"}">Vence en ${n} d</span>`}
@@ -668,7 +698,7 @@ function render(){
   else if(UI.tab==="inspeccion")body=UI.insp&&S.data.inspecciones[UI.insp]?vInspRun(eq,S.data.inspecciones[UI.insp]):vInspeccionar(eq);
   else if(UI.tab==="hallazgos")body=vHallazgos(eq);
   else if(UI.tab==="panel")body=vPanel(eq);
-  else body=vCalc();
+  else body=vCapacitar(eq);
   const openH=eq?hallz(eq).filter(h=>h.estado==="abierto").length:0;
   $("#app").innerHTML=`
   <header class="top"><div class="wrap">
@@ -681,7 +711,7 @@ function render(){
     ${body}
   </main>
   ${eq?`<nav class="tabs" aria-label="Secciones"><div>
-    ${[["equipo","Equipo"],["panel","Panel"],["inspeccion","Inspeccionar"],["hallazgos","Hallazgos"],["calc","Cálculo"]].map(([k,t])=>`<button data-act="tab" data-v="${k}" ${UI.tab===k&&!UI.todos?'aria-current="page"':""}>${ICON[k]}<span>${t}${k==="hallazgos"&&openH?` <span class="badge">${openH}</span>`:""}</span></button>`).join("")}
+    ${[["equipo","Equipo"],["panel","Panel"],["inspeccion","Inspeccionar"],["hallazgos","Hallazgos"],["calc","Capacitar"]].map(([k,t])=>`<button data-act="tab" data-v="${k}" ${UI.tab===k&&!UI.todos?'aria-current="page"':""}>${ICON[k]}<span>${t}${k==="hallazgos"&&openH?` <span class="badge">${openH}</span>`:""}</span></button>`).join("")}
   </div></nav>`:""}
   ${UI.sheet?`<div class="sheet-bg" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true" data-stop><div class="grab"></div><button class="btn ghost" data-act="closeSheet" style="float:right;margin:-4px 0 6px 10px">Volver</button>${vSheet(eq)}</div></div>`:""}`;
   if(fid){const el=document.getElementById(fid);if(el){el.focus({preventScroll:true});try{if(ss!=null)el.setSelectionRange(ss,se)}catch(e){}}}
@@ -929,6 +959,7 @@ async function exportarExcel(eq){
     "Check lists":insps(eq).filter(i=>esLista(i.tipo)).flatMap(i=>(i.checklist||[]).map((c,k)=>({Lista:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Punto:k+1,Pregunta:(LISTAS[i.tipo]||LISTAS.checklist).q[k]||"",Respuesta:c.r==="si"?"Sí":c.r==="no"?"No":"",Observaciones:E(c.obs)}))),
     "Herramientas":regs(eq).flatMap(r=>(r.items||[]).map(t=>({Fecha:fmtF(r.creado),Tarea:E(r.tarea),Persona:E(r.persona),Herramienta:t.desc,"Peso (kg)":E(t.peso),Amarre:AMARRE[t.amarre]||"",Bajó:t.bajo?"Sí":"No",Registro:r.estado==="cerrado"?"Cerrado":"Abierto"}))),
     "Caídas":caidas(eq).map(c=>({Fecha:fmtF(c.fecha),Zona:E(c.zona),Objeto:E(c.objeto),"Masa (kg)":E(c.masa),"Altura (m)":E(c.altura),Consecuencia:CONS[c.cons]?CONS[c.cons].t:"",Lesionados:c.lesion==="si"?"Sí":"No",Qué_pasó:E(c.desc),Causa:E(c.causa),Lección:E(c.leccion)})),
+    "Charlas":charlas(eq).filter(c=>c.estado==="cerrada").flatMap(c=>c.asistentes.map(a=>({Fecha:fmtF(c.creado),Tema:c.tema,Dictó:E(c.dicto),"Duración (min)":E(c.min),Asistente:a.n,Firmó:a.firma?"Sí":"No"}))),
     "Libro":lb.zonas.flatMap(z=>z.items.map(it=>({Código:codigo(eq,z,it),Zona:z.nombre,Acceso:z.acceso==="roja"?"Zona roja":z.acceso==="verde"?"Zona verde":"",Componente:it.desc,Riesgo:RIESGO_TXT[it.riesgo||""],"Fijación primaria":E(it.primaria),"Retención secundaria":E(it.secundaria),"Aseguramiento de seguridad":E(it.seguridad),"Qué verificar":E(it.criterio),Frecuencia:FREC[it.frec]?FREC[it.frec].t:"Mensual",Temporario:it.temp==="si"?("Sí"+(it.retiro?", retirar el "+fmtF(it.retiro):"")):""})))
   };
   const wb=XLSX.utils.book_new();
@@ -936,6 +967,114 @@ async function exportarExcel(eq){
     const keys=Object.keys(rows[0]||{Sin_datos:""});ws["!cols"]=keys.map(k=>({wch:Math.min(50,Math.max(k.length,...rows.map(r=>String(r[k]??"").length))+2)}));XLSX.utils.book_append_sheet(wb,ws,n)});
   const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
   await guardarArchivo(`Libro_DROPS_${eq.nombre.replace(/[^\w-]+/g,"_")}_${hoy()}.xlsx`,new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+
+/* ============ Capacitar ============ */
+function vCapacitar(eq){
+  const t=UI.capTab||"calc";
+  const tabs=`<div class="filters" role="group" aria-label="Capacitar">${[["calc","Calculadora"],["barreras","3 barreras"],["charla","Charla 5 min"]].map(([k,x])=>`<button aria-pressed="${t===k}" data-act="capTab" data-v="${k}">${x}</button>`).join("")}</div>`;
+  return tabs+(t==="barreras"?vBarreras():t==="charla"?vCharla(eq):vCalc());
+}
+function vBarreras(){
+  const B=UI.bar||(UI.bar={sec:true,seg:true,n:0});
+  const esc2=B.n?(B.sec?"s-ok":B.seg?"s-falla s-eslinga":"s-falla s-cae"):"";
+  const k=consecuencia(4,12);
+  const msg=!B.n?"":B.sec?(B.seg?["bien","La retención secundaria trabó la fijación: con la vibración no se aflojó. El objeto sigue en su lugar."]:["bien","La traba aguantó. Pero sin eslinga no hay respaldo si se rompe el soporte: conviene agregarla."])
+    :B.seg?["warn","Sin traba, la vibración aflojó los bulones y se soltaron. La eslinga retuvo el objeto: no cayó, pero quedó colgando. Hay que reponer la traba y revisar la eslinga."]
+    :["mal",`Sin traba ni eslinga, el objeto cae. Un reflector de 4 kg desde 12 m: ${CONS[k.c].t.toLowerCase()} (${Math.round(k.e)} J).`];
+  const run=B.n?" bar-run "+esc2:"";
+  return `<h1>Las 3 barreras</h1><p class="small muted">Un objeto en altura cae solo cuando fallan todas sus barreras. Probá qué pasa cuando falta cada una.</p>
+  <div class="barcards"><div style="border-top-color:var(--steel)"><b>1. Fijación primaria</b>Lo sostiene: bulones, grampas, pernos.</div><div style="border-top-color:${B.sec?"var(--green)":"var(--red)"}"><b>2. Retención secundaria</b>Traba la fijación para que no se afloje.</div><div style="border-top-color:${B.seg?"var(--green)":"var(--red)"}"><b>3. Aseguramiento</b>Lo retiene si todo lo demás falla.</div></div>
+  <div class="row wrapflex" style="gap:8px;margin-bottom:10px">
+    <button class="btn ${B.sec?"":"ghost"}" data-act="barTog" data-v="sec" aria-pressed="${B.sec}">${B.sec?"✓":"✗"} Retención secundaria</button>
+    <button class="btn ${B.seg?"":"ghost"}" data-act="barTog" data-v="seg" aria-pressed="${B.seg}">${B.seg?"✓":"✗"} Eslinga de seguridad</button></div>
+  <svg class="barsvg${run}" viewBox="0 0 320 250" role="img" aria-label="Animación de un reflector en altura con sus barreras">
+    <rect x="0" y="0" width="320" height="250" fill="var(--sunk)"/>
+    <rect x="20" y="22" width="280" height="16" rx="3" fill="var(--steel)"/><text x="26" y="16" font-size="10" fill="var(--muted)">Estructura del mástil</text>
+    ${B.seg?`<line class="sling" x1="214" y1="38" x2="214" y2="68" stroke="var(--amber)" stroke-width="3" stroke-dasharray="4 2"/><text x="222" y="58" font-size="10" fill="var(--muted)">Eslinga</text>`:""}
+    <g class="obj"><g class="vib">
+      <rect x="132" y="38" width="56" height="12" fill="var(--steel)" opacity=".8"/>
+      <g class="perno"><rect x="140" y="30" width="6" height="26" fill="var(--ink)"/><circle class="traba" cx="143" cy="58" r="${B.sec?5:0}" fill="var(--amber)"/></g>
+      <g class="perno"><rect x="174" y="30" width="6" height="26" fill="var(--ink)"/><circle class="traba" cx="177" cy="58" r="${B.sec?5:0}" fill="var(--amber)"/></g>
+      <rect x="128" y="62" width="92" height="40" rx="6" fill="var(--ink)"/><rect x="134" y="68" width="40" height="28" rx="4" fill="#FFE58A"/><text x="196" y="88" font-size="10" fill="var(--surface)" text-anchor="middle">4 kg</text>
+      ${B.seg?`<circle cx="214" cy="68" r="3" fill="var(--amber)"/>`:""}
+    </g></g>
+    <rect x="0" y="232" width="320" height="18" fill="var(--line)"/>
+    <rect x="96" y="226" width="150" height="6" fill="var(--red)" opacity=".5"/><text x="250" y="228" font-size="10" fill="var(--red)">Zona roja</text>
+    <g class="impacto"><circle cx="174" cy="226" r="26" fill="var(--red)" opacity=".25"/><text x="70" y="212" font-size="14" font-weight="700" text-anchor="middle" fill="var(--red)">¡Impacto!</text></g>
+    <text x="10" y="228" font-size="10" fill="var(--muted)">12 m</text>
+  </svg>
+  <button class="btn primary block" style="margin-top:10px" data-act="barRun">${B.n?"Repetir":"Simular vibración"}</button>
+  ${msg?`<div class="estado ${msg[0]} barmsg" style="animation-delay:${B.sec?1.6:2.6}s"><p>${msg[1]}</p></div>`:""}
+  <p class="small muted" style="margin-top:8px">Por eso la app marca como hallazgo todo componente de riesgo alto sin retención secundaria, aunque esté bien.</p>`;
+}
+const TEMAS=[
+ {t:"Las 3 barreras",x:"Todo lo que está en altura necesita fijación primaria, retención secundaria y, si puede caer sobre alguien, un aseguramiento de seguridad. Un objeto cae solo cuando fallan todas.",q:"¿Qué componente del equipo tiene una sola barrera?"},
+ {t:"Chavetas y seguros",x:"Una chaveta mal puesta es como no tenerla: tiene que ser del tamaño del agujero, con las patas abiertas, y nueva. Nunca un clavo o un alambre en su lugar.",q:"¿Dónde vieron un seguro improvisado?"},
+ {t:"Herramientas en altura",x:"Toda herramienta que sube se anota y se ata. Hasta 5 kg, a la muñeca o al cinturón; más de 5 kg, a la estructura, nunca a la persona. Al bajar, se cuenta todo.",q:"¿Qué herramienta subimos sin atar alguna vez?"},
+ {t:"Zona roja",x:"Debajo de una maniobra en altura hay riesgo de caída de objetos. A la zona roja se entra solo con autorización y cuando la maniobra está detenida.",q:"¿Quién autoriza hoy el ingreso a la zona roja?"},
+ {t:"Después de un evento",x:"Después de una tijera, un martilleo, viento fuerte o un enganche, se revisa el mástil antes de seguir: la vibración afloja fijaciones que estaban bien.",q:"¿Cuándo fue el último evento que nos obligó a revisar?"},
+ {t:"Chequeo de colisión",x:"Antes de mover el aparejo, el recorrido tiene que estar libre: mangueras, cables y tubería pueden engancharse y tirar objetos desde arriba.",q:"¿Qué se puede enganchar en nuestro recorrido?"},
+ {t:"Orden en altura",x:"Nada suelto en el piso de enganche ni en la torre: bulones, chavetas o herramientas olvidadas son las caídas más comunes.",q:"¿Qué encontramos suelto la última vez?"},
+ {t:"Eslingas de seguridad",x:"La eslinga tiene que estar certificada, atada a la estructura y no al mismo soporte, y ser corta para que el objeto caiga lo menos posible.",q:"¿Qué eslinga está demasiado larga o atada al mismo soporte?"}
+];
+function armarCharla(eq){
+  const lb=libro(eq),hs=hallz(eq),cs=caidas(eq);const n=Math.floor(Date.now()/864e5);const T=TEMAS[n%TEMAS.length];
+  const cnt={};hs.forEach(h=>{if(esCodLista(h.itemId))return;(cnt[h.itemId]=cnt[h.itemId]||{n:0,h}).n++});
+  const rep=Object.values(cnt).sort((a,b)=>b.n-a.n).slice(0,3);const ab=hs.filter(h=>h.estado==="abierto").slice(0,3);
+  const rojas=lb.zonas.filter(z=>z.acceso==="roja");
+  return [
+   {t:"Tema del día: "+T.t,x:T.x,l:[]},
+   {t:"Lo que más se repite en "+eq.nombre,x:rep.some(r=>r.n>1)?"Estos componentes tuvieron hallazgos más de una vez. Si se repite, hay que cambiar el método, no solo corregirlo.":ab.length?"Hallazgos que siguen abiertos:":"No hay hallazgos repetidos ni abiertos. Bien: sigamos así.",
+    l:rep.some(r=>r.n>1)?rep.filter(r=>r.n>1).map(r=>`${r.h.codigo} · ${r.h.item} (${r.n} veces)`):ab.map(h=>`${h.codigo} · ${h.descripcion}`)},
+   {t:"Caídas registradas",x:cs.length?"Lo que pasó y lo que aprendimos:":"No hay caídas registradas. Recordá: toda caída se registra, aunque no lastime a nadie.",
+    l:cs.slice(0,2).map(c=>`${fmtF(c.fecha)} · ${c.objeto}${c.leccion?" → "+c.leccion:""}`)},
+   {t:"Zonas rojas del equipo",x:rojas.length?"Solo se entra con autorización:":"Todavía no hay zonas rojas definidas. ¿Dónde puede caer algo durante la maniobra?",l:rojas.map(z=>`${z.nombre}${z.autoriza?" · autoriza "+z.autoriza:""}`)},
+   {t:"Pregunta para el grupo",x:T.q+" Y además: ¿qué vieron hoy que pueda caer? Si aparece algo, se anota como hallazgo.",l:[]}
+  ];
+}
+const charlas=eq=>Object.values(S.data.charlas).filter(c=>eq&&c.equipoId===eq.id).sort((a,b)=>(b.creado||"").localeCompare(a.creado||""));
+function vCharla(eq){
+  const ab=charlas(eq).find(c=>c.estado==="abierta");
+  if(!ab){const hist=charlas(eq).filter(c=>c.estado==="cerrada");
+    return `<h1>Charla de 5 minutos</h1><p class="small muted">La app arma la charla con los datos reales del equipo: hallazgos que se repiten, caídas y zonas rojas. Al final firman los asistentes.</p>
+    ${S.readOnly?"":`<button class="btn primary block" style="margin-top:12px" data-act="nuevaCharla">Armar la charla de hoy</button>`}
+    <h2 style="margin-top:20px">Charlas dadas</h2>
+    ${hist.length?hist.map(c=>`<div class="item"><div class="row between wrapflex"><h3>${esc(c.tema)}</h3><span class="chip">${c.asistentes.length} ${c.asistentes.length===1?"asistente":"asistentes"}</span></div><p class="small muted">${fmtF(c.creado)} · dictó ${esc(c.dicto||"—")}</p><button class="btn ghost" data-act="pdfCharla" data-v="${c.id}">Constancia en PDF</button></div>`).join(""):`<p class="muted">Todavía no hay charlas registradas.</p>`}`}
+  const k=Math.min(UI.chK||0,ab.secciones.length);const N=ab.secciones.length;
+  const head=`<div class="row between"><button class="link" data-act="salirCharla">‹ Salir</button><span class="small muted">⏱ <b id="chTime" data-v="${ab.id}">0:00</b> / 5:00</span></div>
+  <div class="chdots">${Array.from({length:N+1},(_,j)=>`<i class="${j===k?"on":""}"></i>`).join("")}</div>`;
+  if(k<N){const sc=ab.secciones[k];
+    return head+`<div class="chcard" style="border-left-color:var(--${k===0?"red":k===N-1?"green":"amber"})"><span class="small muted">${k+1} de ${N}</span><h2>${esc(sc.t)}</h2><p>${esc(sc.x)}</p>${sc.l.length?`<ul>${sc.l.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
+    <div class="row" style="gap:8px;margin-top:12px">${k?`<button class="btn ghost" style="flex:1" data-act="chPaso" data-v="-1">Anterior</button>`:""}<button class="btn primary" style="flex:2" data-act="chPaso" data-v="1">${k===N-1?"Ir a las firmas":"Siguiente"}</button></div>`}
+  const prev=[...new Set(charlas(eq).flatMap(c=>c.asistentes.map(a=>a.n)))].filter(n=>!ab.asistentes.some(a=>a.n===n)).slice(0,12);
+  const d=draft&&draft.charla===ab.id?draft:(draft={charla:ab.id,nombre:"",firmaAs:null});
+  return head+`<h2>Asistentes</h2>
+  ${ab.asistentes.length?ab.asistentes.map((a,j)=>`<div class="row between" style="border-top:1px solid var(--line);padding:6px 0"><span><b>${esc(a.n)}</b></span><span class="row" style="gap:8px">${a.firma?`<img src="${a.firma}" alt="Firma de ${esc(a.n)}" style="height:34px;background:#fff;border-radius:4px">`:""}<button class="link small" data-act="quitarAs" data-v="${j}">Quitar</button></span></div>`).join(""):`<p class="small muted">Cada asistente escribe su nombre y firma.</p>`}
+  <div class="panel" style="margin-top:10px">
+    ${prev.length?`<div class="row wrapflex" style="gap:6px;margin-bottom:6px">${prev.map(n=>`<button class="chip" style="border:1px solid var(--line);cursor:pointer" data-act="asRapido" data-v="${esc(n)}">${esc(n)}</button>`).join("")}</div>`:""}
+    <label class="f" for="asN">Nombre</label><input class="t" id="asN" data-draft="nombre" value="${esc(d.nombre)}" autocomplete="off">
+    <label class="f">Firma</label><canvas class="firma" id="firmaAs" aria-label="Recuadro para firmar"></canvas>
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:2" data-act="addAs">+ Agregar asistente</button><button class="btn ghost" style="flex:1" data-act="limpiarAs">Borrar firma</button></div></div>
+  <label class="f" for="chD">Dictó la charla</label><input class="t" id="chD" data-chd="1" value="${esc(ab.dicto||"")}" placeholder="Nombre">
+  <button class="btn primary block" style="margin-top:14px" data-act="cerrarCharla" ${ab.asistentes.length?"":"disabled"}>Cerrar charla</button>
+  <p class="small muted" style="text-align:center">${ab.asistentes.length?"Queda registrada con fecha, temas y firmas.":"Agregá al menos un asistente para cerrar."}</p>
+  <button class="link small" data-act="chPaso" data-v="-1">‹ Volver a los temas</button> · <button class="link small" data-act="borrarCharla" data-v="${ab.id}">Borrar charla</button>`;
+}
+async function pdfCharla(id){
+  const c=S.data.charlas[id];const eq=S.data.equipos[c.equipoId];if(!c||!eq)return;
+  toast("Preparando la constancia…");
+  try{await cargarPDF()}catch(e){toast("No se pudo cargar el generador de PDF. Revisá la conexión a internet.");return}
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});const W=210;let y=14;
+  doc.setFillColor(191,47,27);doc.rect(0,0,W,12,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfTxt("CHARLA DE SEGURIDAD - PREVENCIÓN DE CAÍDA DE OBJETOS"),10,8);
+  doc.setTextColor(30);doc.setFontSize(10);y=20;
+  doc.setFont("helvetica","normal");doc.text(pdfTxt(`${EMP.nombre?EMP.nombre+" · ":""}Equipo: ${eq.nombre}   Fecha: ${fmtF(c.creado)}   Duración: ${c.min||"-"} min   Dictó: ${c.dicto||"-"}`),10,y);y+=8;
+  doc.setFont("helvetica","bold");doc.text("Temas tratados",10,y);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(9);
+  c.secciones.forEach((sc,j)=>{const lines=doc.splitTextToSize(pdfTxt(`${j+1}. ${sc.t}: ${sc.x}${sc.l.length?" "+sc.l.join("; "):""}`),W-20);doc.text(lines,10,y);y+=lines.length*4.2+2});
+  y+=4;doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Asistentes",10,y);y+=3;
+  doc.autoTable({startY:y,head:[["#","Nombre","Firma"]],body:c.asistentes.map((a,j)=>[String(j+1),pdfTxt(a.n),""]),theme:"grid",headStyles:{fillColor:[52,69,77]},styles:{fontSize:9,minCellHeight:14,valign:"middle"},columnStyles:{0:{cellWidth:10},1:{cellWidth:90},2:{cellWidth:"auto"}},
+    didDrawCell:dd=>{if(dd.section==="body"&&dd.column.index===2){const a=c.asistentes[dd.row.index];if(a&&a.firma){try{doc.addImage(a.firma,"PNG",dd.cell.x+2,dd.cell.y+1,36,12)}catch(e){}}}}});
+  await guardarArchivo(`Charla_DROPS_${eq.nombre.replace(/[^\w-]+/g,"_")}_${ymd(new Date(c.creado))}.pdf`,doc.output("blob"));
 }
 
 /* ============ Panel de indicadores ============ */
@@ -965,6 +1104,8 @@ function vPanel(eq){
   if(ctrls.length)acc.push({t:`Hacer ${ctrls.length} ${pl(ctrls.length,"control diario o semanal","controles diarios o semanales")}`,d:"Componentes con control más frecuente que el mensual.",a:"irZonaP",v:ctrls[0].id,c:"warn"});
   const rojasSin=lb.zonas.filter(z=>z.acceso==="roja"&&!z.autoriza);
   if(rojasSin.length)acc.push({t:`Definir quién autoriza el ingreso a ${rojasSin.length} ${pl(rojasSin.length,"zona roja","zonas rojas")}`,d:"Sin responsable, cualquiera puede entrar.",a:"irZonaP",v:rojasSin[0].id,c:"warn"});
+  const uc=charlas(eq).find(c=>c.estado==="cerrada");
+  if(!uc||dias(uc.creado,new Date())>7)acc.push({t:"Dar la charla de 5 minutos",d:uc?`La última fue hace ${dias(uc.creado,new Date())} días.`:"Todavía no se dio ninguna. La app la arma sola.",a:"irCharla",v:"",c:"warn"});
   if(sinResp)acc.push({t:`Asignar responsable a ${sinResp} ${pl(sinResp,"hallazgo","hallazgos")}`,d:"Sin responsable, nadie lo cierra.",a:"irHall",v:"abiertos",c:"warn"});
   const est=acc.some(x=>x.c==="mal")?["mal","Requiere atención"]:acc.length?["warn","Con pendientes"]:["bien","Todo al día"];
   const porZona=lb.zonas.map(z=>({z,n:ab.filter(h=>z.items.some(it=>it.id===h.itemId)).length})).filter(x=>x.n).sort((a,b)=>b.n-a.n).slice(0,5);
@@ -1262,7 +1403,7 @@ function afterRender(){
     requestAnimationFrame(step);
   });
   document.querySelectorAll(".anim .mz").forEach((el,k)=>el.style.animationDelay=(k*35)+"ms");
-  if(UI.tab==="calc"&&!UI.todos){
+  if(UI.tab==="calc"&&!UI.todos&&(UI.capTab||"calc")==="calc"){
     const key=UI.calc.m+"|"+UI.calc.h;
     if(UI.calcKey!==key){UI.calcKey=key;
       document.querySelectorAll("#cPt animate").forEach(a=>{try{a.beginElement()}catch(e){}});
@@ -1271,6 +1412,9 @@ function afterRender(){
     }
   }
   const cv=document.getElementById("firmaCv");if(cv)montarFirma(cv);
+  const ca=document.getElementById("firmaAs");if(ca)montarPad(ca,()=>draft&&draft.firmaAs,d=>{if(draft)draft.firmaAs=d});
+  clearInterval(UI.chTimer);const tm=document.getElementById("chTime");
+  if(tm){const ch=S.data.charlas[tm.dataset.v];const f=()=>{if(!ch||!document.body.contains(tm)){clearInterval(UI.chTimer);return}const sg=Math.max(0,Math.floor((Date.now()-new Date(ch.creado))/1000));tm.textContent=`${Math.floor(sg/60)}:${String(sg%60).padStart(2,"0")}`};f();UI.chTimer=setInterval(f,1000)}
 }
 function caer(){const b=document.getElementById("fallBox");if(!b)return;b.classList.remove("go");void b.offsetWidth;b.classList.add("go")}
 function sello(txt){
@@ -1280,6 +1424,17 @@ function sello(txt){
 }
 
 /* ============ Firma ============ */
+function montarPad(cv,get,save){
+  const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+  const g=cv.getContext("2d");g.scale(dpr,dpr);g.lineWidth=2.4;g.lineCap="round";g.lineJoin="round";g.strokeStyle=getComputedStyle(document.body).color;
+  const ini=get();if(ini){const im=new Image();im.onload=()=>g.drawImage(im,0,0,r.width,r.height);im.src=ini}
+  let last=null,trazo=false;const pos=e=>{const b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]};
+  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);UI.firmando=true;last=pos(e);trazo=false;e.preventDefault()};
+  cv.onpointermove=e=>{if(!last)return;const p=pos(e);g.beginPath();g.moveTo(last[0],last[1]);g.lineTo(p[0],p[1]);g.stroke();last=p;trazo=true};
+  cv.onpointerup=cv.onpointercancel=()=>{if(!last)return;last=null;UI.firmando=false;if(!trazo)return;
+    const o=document.createElement("canvas");o.width=360;o.height=Math.round(360*r.height/r.width);const og=o.getContext("2d");og.drawImage(cv,0,0,o.width,o.height);
+    const d=og.getImageData(0,0,o.width,o.height);for(let k=0;k<d.data.length;k+=4){d.data[k]=d.data[k+1]=d.data[k+2]=20}og.putImageData(d,0,0);save(o.toDataURL("image/png"))};
+}
 function montarFirma(cv){
   const i=UI.insp&&S.data.inspecciones[UI.insp];if(!i)return;
   const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
@@ -1490,6 +1645,22 @@ document.addEventListener("click",e=>{
       if(equipos().some(x=>x.nombre.toLowerCase()===n.toLowerCase())){toast("Ya existe un equipo con ese nombre.");return}
       crearEquipo(n,$("#nPl").checked);UI.sheet=null;UI.tab="equipo";UI.zona=null;break}
     case"excel":exportarExcel(eq);return;
+    case"capTab":UI.capTab=v;draft=null;break;
+    case"irCharla":UI.todos=false;UI.tab="calc";UI.capTab="charla";window.scrollTo(0,0);break;
+    case"barTog":UI.bar[v]=!UI.bar[v];UI.bar.n=0;break;
+    case"barRun":UI.bar.n++;break;
+    case"nuevaCharla":{const c={id:uid(),equipoId:eq.id,secciones:armarCharla(eq),asistentes:[],dicto:UI.inspector||"",estado:"abierta",creado:new Date().toISOString()};c.tema=c.secciones[0].t.replace("Tema del día: ","");put("charlas",c);UI.chK=0;draft=null;window.scrollTo(0,0);break}
+    case"chPaso":{const ab=charlas(eq).find(c=>c.estado==="abierta");if(!ab)break;UI.chK=Math.max(0,Math.min(ab.secciones.length,(UI.chK||0)+(+v)));window.scrollTo(0,0);break}
+    case"salirCharla":UI.chK=0;UI.capTab="charla";{const ab=charlas(eq).find(c=>c.estado==="abierta");if(ab&&!ab.asistentes.length&&confirm("¿Descartar la charla sin asistentes?"))del("charlas",ab.id)}draft=null;break;
+    case"asRapido":if(draft){draft.nombre=v}break;
+    case"limpiarAs":if(draft)draft.firmaAs=null;break;
+    case"addAs":{const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));const n=(draft&&draft.nombre||"").trim();if(!n){toast("Escribí el nombre del asistente.");return}
+      if(!draft.firmaAs){toast("Falta la firma de "+n+".");return}if(ab.asistentes.some(a=>a.n.toLowerCase()===n.toLowerCase())){toast(n+" ya está en la lista.");return}
+      ab.asistentes.push({n,firma:draft.firmaAs});put("charlas",ab);draft={charla:ab.id,nombre:"",firmaAs:null};toast(n+" agregado.");break}
+    case"quitarAs":{const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.asistentes.splice(+v,1);put("charlas",ab);break}
+    case"cerrarCharla":{if(t.disabled)return;const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.estado="cerrada";ab.cierre=new Date().toISOString();ab.min=Math.max(1,Math.round((Date.now()-new Date(ab.creado))/60000));put("charlas",ab);UI.chK=0;draft=null;sello("Charla registrada");break}
+    case"borrarCharla":{if(!confirm("¿Borrar esta charla?"))return;del("charlas",v);UI.chK=0;draft=null;break}
+    case"pdfCharla":pdfCharla(v);return;
     case"setAcceso":{const lb=clone(libro(eq));const z=lb.zonas.find(x=>x.id===t.dataset.z);const aut=($("#zAut")||{}).value||"";z.acceso=v;z.autoriza=aut.trim();guardarLibro(lb);break}
     case"guardarAcceso":{const lb=clone(libro(eq));const z=lb.zonas.find(x=>x.id===t.dataset.z);z.autoriza=(($("#zAut")||{}).value||"").trim();guardarLibro(lb);UI.sheet=null;toast("Acceso guardado.");break}
     case"nuevoReg":{const r={id:uid(),equipoId:eq.id,tarea:"",persona:UI.inspector||"",items:[],estado:"abierto",creado:new Date().toISOString()};put("registros",r);UI.sheet="reg:"+r.id;break}
@@ -1550,7 +1721,7 @@ document.addEventListener("click",e=>{
       h.estado="cerrado";h.cierre={fecha:new Date().toISOString(),comentario:com,foto:draft.foto,por:UI.inspector||""};put("hallazgos",h);UI.sheet=null;draft=null;toast("Hallazgo cerrado.");break}
     case"reabrir":{const h=S.data.hallazgos[v];h.estado="abierto";delete h.cierre;put("hallazgos",h);break}
   }
-  if(["tab","zona","back","irEq","continuar","salirInsp","irHall","irZonaP"].includes(a))withVT(render);else render();
+  if(["tab","zona","back","irEq","continuar","salirInsp","irHall","irZonaP","irCharla"].includes(a))withVT(render);else render();
 });
 document.addEventListener("input",e=>{
   const el=e.target,ds=el.dataset;const insp=UI.insp?S.data.inspecciones[UI.insp]:(UI.tab==="equipo"&&UI.zona&&eqAct()?inspFicha(eqAct(),false):null);
@@ -1558,6 +1729,7 @@ document.addEventListener("input",e=>{
   else if(ds.obs&&insp){const r=insp.resultados[ds.obs]||(insp.resultados[ds.obs]={});const was=!!(r.obs||"").trim();r.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
   else if(ds.resp&&insp){(insp.resultados[ds.resp]||(insp.resultados[ds.resp]={})).responsable=el.value;put("inspecciones",insp,900)}
   else if(ds.ckobs&&insp){const c=insp.checklist[+ds.ckobs];const was=!!(c.obs||"").trim();c.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
+  else if(ds.chd){const ab=charlas(eqAct()).find(c=>c.estado==="abierta");if(ab){ab.dicto=el.value;put("charlas",ab,900)}}
   else if(ds.reg&&UI.sheet&&UI.sheet.startsWith("reg:")){const r=S.data.registros[UI.sheet.slice(4)];if(r){r[ds.reg]=el.value;put("registros",r,900)}}
   else if(ds.draft&&draft){draft[ds.draft]=el.value;if(ds.draft==="masa"||ds.draft==="altura")render()}
   else if(ds.calc){UI.calc[ds.calc]=el.value;render()}
