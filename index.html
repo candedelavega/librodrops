@@ -711,7 +711,7 @@ function render(){
     ${body}
   </main>
   ${eq?`<nav class="tabs" aria-label="Secciones"><div>
-    ${[["equipo","Equipo"],["panel","Panel"],["inspeccion","Inspeccionar"],["hallazgos","Hallazgos"],["calc","Capacitar"]].map(([k,t])=>`<button data-act="tab" data-v="${k}" ${UI.tab===k&&!UI.todos?'aria-current="page"':""}>${ICON[k]}<span>${t}${k==="hallazgos"&&openH?` <span class="badge">${openH}</span>`:""}</span></button>`).join("")}
+    ${[["equipo","Equipo"],["panel","Panel"],["inspeccion","Inspeccionar"],["hallazgos","Hallazgos"],["calc","Calculadora"]].map(([k,t])=>`<button data-act="tab" data-v="${k}" ${UI.tab===k&&!UI.todos?'aria-current="page"':""}>${ICON[k]}<span>${t}${k==="hallazgos"&&openH?` <span class="badge">${openH}</span>`:""}</span></button>`).join("")}
   </div></nav>`:""}
   ${UI.sheet?`<div class="sheet-bg" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true" data-stop><div class="grab"></div><button class="btn ghost" data-act="closeSheet" style="float:right;margin:-4px 0 6px 10px">Volver</button>${vSheet(eq)}</div></div>`:""}`;
   if(fid){const el=document.getElementById(fid);if(el){el.focus({preventScroll:true});try{if(ss!=null)el.setSelectionRange(ss,se)}catch(e){}}}
@@ -1009,27 +1009,22 @@ function vBarreras(){
   <p class="small muted" style="margin-top:8px">Por eso la app marca como hallazgo todo componente de riesgo alto sin retención secundaria, aunque esté bien.</p>`;
 }
 const TEMAS=[
- {t:"Las 3 barreras",x:"Todo lo que está en altura necesita fijación primaria, retención secundaria y, si puede caer sobre alguien, un aseguramiento de seguridad. Un objeto cae solo cuando fallan todas.",q:"¿Qué componente del equipo tiene una sola barrera?"},
- {t:"Chavetas y seguros",x:"Una chaveta mal puesta es como no tenerla: tiene que ser del tamaño del agujero, con las patas abiertas, y nueva. Nunca un clavo o un alambre en su lugar.",q:"¿Dónde vieron un seguro improvisado?"},
- {t:"Herramientas en altura",x:"Toda herramienta que sube se anota y se ata. Hasta 5 kg, a la muñeca o al cinturón; más de 5 kg, a la estructura, nunca a la persona. Al bajar, se cuenta todo.",q:"¿Qué herramienta subimos sin atar alguna vez?"},
- {t:"Zona roja",x:"Debajo de una maniobra en altura hay riesgo de caída de objetos. A la zona roja se entra solo con autorización y cuando la maniobra está detenida.",q:"¿Quién autoriza hoy el ingreso a la zona roja?"},
- {t:"Después de un evento",x:"Después de una tijera, un martilleo, viento fuerte o un enganche, se revisa el mástil antes de seguir: la vibración afloja fijaciones que estaban bien.",q:"¿Cuándo fue el último evento que nos obligó a revisar?"},
- {t:"Chequeo de colisión",x:"Antes de mover el aparejo, el recorrido tiene que estar libre: mangueras, cables y tubería pueden engancharse y tirar objetos desde arriba.",q:"¿Qué se puede enganchar en nuestro recorrido?"},
- {t:"Orden en altura",x:"Nada suelto en el piso de enganche ni en la torre: bulones, chavetas o herramientas olvidadas son las caídas más comunes.",q:"¿Qué encontramos suelto la última vez?"},
- {t:"Eslingas de seguridad",x:"La eslinga tiene que estar certificada, atada a la estructura y no al mismo soporte, y ser corta para que el objeto caiga lo menos posible.",q:"¿Qué eslinga está demasiado larga o atada al mismo soporte?"}
+ {t:"Las 3 barreras",x:"Todo lo que está en altura necesita fijación primaria, retención secundaria y, si puede caer sobre alguien, un aseguramiento de seguridad. Un objeto cae solo cuando fallan todas.",ej:{o:"Un reflector de 4 kg",m:4,h:12},a:["Toda fijación en altura lleva su traba: chaveta, tuerca autofrenante o arandela de bloqueo.","Si el objeto puede caer sobre alguien, lleva eslinga de seguridad.","Si falta una barrera, se reporta como hallazgo."],q:"¿Qué conocen en el equipo que tenga una sola barrera?"},
+ {t:"Chavetas y seguros",x:"Una chaveta mal puesta es como no tenerla. Es la barrera más chica y la que más se olvida.",ej:{o:"Un perno de 0,5 kg",m:0.5,h:15},a:["Chaveta del tamaño del agujero, con las patas abiertas.","Nunca un clavo, alambre o precinto en lugar de la chaveta.","Chaveta que se saca, chaveta nueva."],q:"¿Dónde vieron un seguro improvisado?"},
+ {t:"Herramientas en altura",x:"Las herramientas que se caen son una de las causas más comunes de caída de objetos. Se evitan con registro y amarre.",ej:{o:"Una llave de 1 kg",m:1,h:20},a:["Toda herramienta que sube se anota.","Hasta 5 kg, atada a la muñeca o al cinturón. Más de 5 kg, atada a la estructura, nunca a la persona.","Al bajar se cuenta todo: nada queda arriba."],q:"¿Qué herramienta subimos alguna vez sin atar?"},
+ {t:"Zona roja",x:"Debajo de un trabajo o una maniobra en altura hay riesgo de que caigan objetos. Esa área es zona roja.",ej:{o:"Un grillete de 2 kg",m:2,h:15},a:["Durante la maniobra nadie entra a la zona roja.","Se entra solo con autorización y con la maniobra detenida.","La zona queda delimitada y señalizada."],q:"¿Quién autoriza hoy el ingreso a la zona roja?"},
+ {t:"Después de un evento",x:"Una tijera, un martilleo, viento fuerte o un enganche pueden aflojar fijaciones que estaban bien.",ej:{o:"Un bulón de 0,3 kg",m:0.3,h:25},a:["Después de un evento se para y se revisa antes de seguir.","Se revisa sobre todo la corona, el piso de enganche y las luminarias.","La revisión queda registrada como inspección post-evento."],q:"¿Cuándo fue el último evento que nos obligó a revisar?"},
+ {t:"Chequeo de colisión",x:"Cuando el aparejo se mueve, cualquier cosa en su recorrido se puede enganchar y tirar objetos desde arriba.",ej:{o:"Una grampa de 3 kg",m:3,h:18},a:["Antes de mover, el recorrido tiene que estar libre.","Mangueras y cables asegurados lejos del recorrido.","Comunicación confirmada entre maquinista y enganchador."],q:"¿Qué se puede enganchar en nuestro recorrido?"},
+ {t:"Orden en altura",x:"Bulones, chavetas o herramientas olvidadas arriba son caídas esperando pasar.",ej:{o:"Una tuerca de 0,2 kg",m:0.2,h:20},a:["Nada suelto en el piso de enganche ni en la torre.","Repuestos chicos en un bolso con cierre.","Antes de bajar, una recorrida visual."],q:"¿Qué encontramos suelto la última vez?"},
+ {t:"Eslingas de seguridad",x:"La eslinga es la última barrera: si todo lo demás falla, es lo único que evita la caída.",ej:{o:"Un reflector de 6 kg",m:6,h:10},a:["Certificada y apta para el peso del objeto.","Atada a la estructura, no al mismo soporte.","Corta, sin nudos, cortes ni hilos rotos."],q:"¿Qué eslinga vieron demasiado larga o atada al mismo soporte?"}
 ];
-function armarCharla(eq){
-  const lb=libro(eq),hs=hallz(eq),cs=caidas(eq);const n=Math.floor(Date.now()/864e5);const T=TEMAS[n%TEMAS.length];
-  const cnt={};hs.forEach(h=>{if(esCodLista(h.itemId))return;(cnt[h.itemId]=cnt[h.itemId]||{n:0,h}).n++});
-  const rep=Object.values(cnt).sort((a,b)=>b.n-a.n).slice(0,3);const ab=hs.filter(h=>h.estado==="abierto").slice(0,3);
-  const rojas=lb.zonas.filter(z=>z.acceso==="roja");
+const temaDelDia=()=>{const d=new Date();return Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%TEMAS.length};
+function armarCharla(idx){
+  const T=TEMAS[idx];const k=consecuencia(T.ej.m,T.ej.h);
   return [
-   {t:"Tema del día: "+T.t,x:T.x,l:[]},
-   {t:"Lo que más se repite en "+eq.nombre,x:rep.some(r=>r.n>1)?"Estos componentes tuvieron hallazgos más de una vez. Si se repite, hay que cambiar el método, no solo corregirlo.":ab.length?"Hallazgos que siguen abiertos:":"No hay hallazgos repetidos ni abiertos. Bien: sigamos así.",
-    l:rep.some(r=>r.n>1)?rep.filter(r=>r.n>1).map(r=>`${r.h.codigo} · ${r.h.item} (${r.n} veces)`):ab.map(h=>`${h.codigo} · ${h.descripcion}`)},
-   {t:"Caídas registradas",x:cs.length?"Lo que pasó y lo que aprendimos:":"No hay caídas registradas. Recordá: toda caída se registra, aunque no lastime a nadie.",
-    l:cs.slice(0,2).map(c=>`${fmtF(c.fecha)} · ${c.objeto}${c.leccion?" → "+c.leccion:""}`)},
-   {t:"Zonas rojas del equipo",x:rojas.length?"Solo se entra con autorización:":"Todavía no hay zonas rojas definidas. ¿Dónde puede caer algo durante la maniobra?",l:rojas.map(z=>`${z.nombre}${z.autoriza?" · autoriza "+z.autoriza:""}`)},
+   {t:T.t,x:T.x,l:[]},
+   {t:"Por qué importa",x:`${T.ej.o} que cae desde ${T.ej.h} m llega al piso con ${Math.round(k.e)} J de energía. Consecuencia potencial: ${CONS[k.c].t.toLowerCase()}.`,l:[]},
+   {t:"Qué hacemos",x:"",l:T.a},
    {t:"Pregunta para el grupo",x:T.q+" Y además: ¿qué vieron hoy que pueda caer? Si aparece algo, se anota como hallazgo.",l:[]}
   ];
 }
@@ -1037,8 +1032,10 @@ const charlas=eq=>Object.values(S.data.charlas).filter(c=>eq&&c.equipoId===eq.id
 function vCharla(eq){
   const ab=charlas(eq).find(c=>c.estado==="abierta");
   if(!ab){const hist=charlas(eq).filter(c=>c.estado==="cerrada");
-    return `<h1>Charla de 5 minutos</h1><p class="small muted">La app arma la charla con los datos reales del equipo: hallazgos que se repiten, caídas y zonas rojas. Al final firman los asistentes.</p>
-    ${S.readOnly?"":`<button class="btn primary block" style="margin-top:12px" data-act="nuevaCharla">Armar la charla de hoy</button>`}
+    const sel=UI.chTema===undefined?temaDelDia():UI.chTema;
+    return `<h1>Charla de 5 minutos</h1><p class="small muted">Elegí el tema (el del día ya viene marcado). Son 4 tarjetas cortas y al final firman los asistentes.</p>
+    ${S.readOnly?"":`<div style="margin-top:10px">${TEMAS.map((T,k)=>`<button class="choice" data-act="chTema" data-v="${k}" style="padding:10px 14px;margin-bottom:6px;border-left-color:var(--${k===sel?"red":"line"})${k===sel?";outline:2px solid var(--ink)":""}"><h3>${esc(T.t)}${k===temaDelDia()?` <span class="chip warn">Tema del día</span>`:""}</h3></button>`).join("")}</div>
+    <button class="btn primary block" style="margin-top:8px" data-act="nuevaCharla">Empezar charla: ${esc(TEMAS[sel].t)}</button>`}
     <h2 style="margin-top:20px">Charlas dadas</h2>
     ${hist.length?hist.map(c=>`<div class="item"><div class="row between wrapflex"><h3>${esc(c.tema)}</h3><span class="chip">${c.asistentes.length} ${c.asistentes.length===1?"asistente":"asistentes"}</span></div><p class="small muted">${fmtF(c.creado)} · dictó ${esc(c.dicto||"—")}</p><button class="btn ghost" data-act="pdfCharla" data-v="${c.id}">Constancia en PDF</button></div>`).join(""):`<p class="muted">Todavía no hay charlas registradas.</p>`}`}
   const k=Math.min(UI.chK||0,ab.secciones.length);const N=ab.secciones.length;
@@ -1057,8 +1054,8 @@ function vCharla(eq){
     <label class="f">Firma</label><canvas class="firma" id="firmaAs" aria-label="Recuadro para firmar"></canvas>
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:2" data-act="addAs">+ Agregar asistente</button><button class="btn ghost" style="flex:1" data-act="limpiarAs">Borrar firma</button></div></div>
   <label class="f" for="chD">Dictó la charla</label><input class="t" id="chD" data-chd="1" value="${esc(ab.dicto||"")}" placeholder="Nombre">
-  <button class="btn primary block" style="margin-top:14px" data-act="cerrarCharla" ${ab.asistentes.length?"":"disabled"}>Cerrar charla</button>
-  <p class="small muted" style="text-align:center">${ab.asistentes.length?"Queda registrada con fecha, temas y firmas.":"Agregá al menos un asistente para cerrar."}</p>
+  <button class="btn primary block" style="margin-top:14px" data-act="cerrarCharla" ${ab.asistentes.length&&(ab.dicto||"").trim()?"":"disabled"}>Cerrar y registrar charla</button>
+  <p class="small muted" style="text-align:center">${!ab.asistentes.length?"Agregá al menos un asistente para cerrar.":!(ab.dicto||"").trim()?"Completá quién dictó la charla.":"Queda registrada con fecha, tema, quién dictó y firmas."}</p>
   <button class="link small" data-act="chPaso" data-v="-1">‹ Volver a los temas</button> · <button class="link small" data-act="borrarCharla" data-v="${ab.id}">Borrar charla</button>`;
 }
 async function pdfCharla(id){
@@ -1070,7 +1067,7 @@ async function pdfCharla(id){
   doc.setTextColor(30);doc.setFontSize(10);y=20;
   doc.setFont("helvetica","normal");doc.text(pdfTxt(`${EMP.nombre?EMP.nombre+" · ":""}Equipo: ${eq.nombre}   Fecha: ${fmtF(c.creado)}   Duración: ${c.min||"-"} min   Dictó: ${c.dicto||"-"}`),10,y);y+=8;
   doc.setFont("helvetica","bold");doc.text("Temas tratados",10,y);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(9);
-  c.secciones.forEach((sc,j)=>{const lines=doc.splitTextToSize(pdfTxt(`${j+1}. ${sc.t}: ${sc.x}${sc.l.length?" "+sc.l.join("; "):""}`),W-20);doc.text(lines,10,y);y+=lines.length*4.2+2});
+  c.secciones.forEach((sc,j)=>{const lines=doc.splitTextToSize(pdfTxt(`${j+1}. ${sc.t}: ${[sc.x,...sc.l].filter(Boolean).join(" ")}`),W-20);doc.text(lines,10,y);y+=lines.length*4.2+2});
   y+=4;doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Asistentes",10,y);y+=3;
   doc.autoTable({startY:y,head:[["#","Nombre","Firma"]],body:c.asistentes.map((a,j)=>[String(j+1),pdfTxt(a.n),""]),theme:"grid",headStyles:{fillColor:[52,69,77]},styles:{fontSize:9,minCellHeight:14,valign:"middle"},columnStyles:{0:{cellWidth:10},1:{cellWidth:90},2:{cellWidth:"auto"}},
     didDrawCell:dd=>{if(dd.section==="body"&&dd.column.index===2){const a=c.asistentes[dd.row.index];if(a&&a.firma){try{doc.addImage(a.firma,"PNG",dd.cell.x+2,dd.cell.y+1,36,12)}catch(e){}}}}});
@@ -1105,7 +1102,7 @@ function vPanel(eq){
   const rojasSin=lb.zonas.filter(z=>z.acceso==="roja"&&!z.autoriza);
   if(rojasSin.length)acc.push({t:`Definir quién autoriza el ingreso a ${rojasSin.length} ${pl(rojasSin.length,"zona roja","zonas rojas")}`,d:"Sin responsable, cualquiera puede entrar.",a:"irZonaP",v:rojasSin[0].id,c:"warn"});
   const uc=charlas(eq).find(c=>c.estado==="cerrada");
-  if(!uc||dias(uc.creado,new Date())>7)acc.push({t:"Dar la charla de 5 minutos",d:uc?`La última fue hace ${dias(uc.creado,new Date())} días.`:"Todavía no se dio ninguna. La app la arma sola.",a:"irCharla",v:"",c:"warn"});
+  if(!uc||dias(uc.creado,new Date())>7)acc.push({t:"Dar la charla de 5 minutos",d:uc?`La última fue hace ${dias(uc.creado,new Date())} días.`:"Todavía no se dio ninguna. Elegís el tema y la app la arma.",a:"irCharla",v:"",c:"warn"});
   if(sinResp)acc.push({t:`Asignar responsable a ${sinResp} ${pl(sinResp,"hallazgo","hallazgos")}`,d:"Sin responsable, nadie lo cierra.",a:"irHall",v:"abiertos",c:"warn"});
   const est=acc.some(x=>x.c==="mal")?["mal","Requiere atención"]:acc.length?["warn","Con pendientes"]:["bien","Todo al día"];
   const porZona=lb.zonas.map(z=>({z,n:ab.filter(h=>z.items.some(it=>it.id===h.itemId)).length})).filter(x=>x.n).sort((a,b)=>b.n-a.n).slice(0,5);
@@ -1649,7 +1646,8 @@ document.addEventListener("click",e=>{
     case"irCharla":UI.todos=false;UI.tab="calc";UI.capTab="charla";window.scrollTo(0,0);break;
     case"barTog":UI.bar[v]=!UI.bar[v];UI.bar.n=0;break;
     case"barRun":UI.bar.n++;break;
-    case"nuevaCharla":{const c={id:uid(),equipoId:eq.id,secciones:armarCharla(eq),asistentes:[],dicto:UI.inspector||"",estado:"abierta",creado:new Date().toISOString()};c.tema=c.secciones[0].t.replace("Tema del día: ","");put("charlas",c);UI.chK=0;draft=null;window.scrollTo(0,0);break}
+    case"chTema":UI.chTema=+v;break;
+    case"nuevaCharla":{const ix=UI.chTema===undefined?temaDelDia():UI.chTema;const c={id:uid(),equipoId:eq.id,secciones:armarCharla(ix),asistentes:[],dicto:UI.inspector||"",estado:"abierta",creado:new Date().toISOString()};c.tema=TEMAS[ix].t;put("charlas",c);UI.chK=0;draft=null;window.scrollTo(0,0);break}
     case"chPaso":{const ab=charlas(eq).find(c=>c.estado==="abierta");if(!ab)break;UI.chK=Math.max(0,Math.min(ab.secciones.length,(UI.chK||0)+(+v)));window.scrollTo(0,0);break}
     case"salirCharla":UI.chK=0;UI.capTab="charla";{const ab=charlas(eq).find(c=>c.estado==="abierta");if(ab&&!ab.asistentes.length&&confirm("¿Descartar la charla sin asistentes?"))del("charlas",ab.id)}draft=null;break;
     case"asRapido":if(draft){draft.nombre=v}break;
@@ -1729,7 +1727,7 @@ document.addEventListener("input",e=>{
   else if(ds.obs&&insp){const r=insp.resultados[ds.obs]||(insp.resultados[ds.obs]={});const was=!!(r.obs||"").trim();r.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
   else if(ds.resp&&insp){(insp.resultados[ds.resp]||(insp.resultados[ds.resp]={})).responsable=el.value;put("inspecciones",insp,900)}
   else if(ds.ckobs&&insp){const c=insp.checklist[+ds.ckobs];const was=!!(c.obs||"").trim();c.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
-  else if(ds.chd){const ab=charlas(eqAct()).find(c=>c.estado==="abierta");if(ab){ab.dicto=el.value;put("charlas",ab,900)}}
+  else if(ds.chd){const ab=charlas(eqAct()).find(c=>c.estado==="abierta");if(ab){const was=!!(ab.dicto||"").trim();ab.dicto=el.value;put("charlas",ab,900);if(was!==!!el.value.trim())render()}}
   else if(ds.reg&&UI.sheet&&UI.sheet.startsWith("reg:")){const r=S.data.registros[UI.sheet.slice(4)];if(r){r[ds.reg]=el.value;put("registros",r,900)}}
   else if(ds.draft&&draft){draft[ds.draft]=el.value;if(ds.draft==="masa"||ds.draft==="altura")render()}
   else if(ds.calc){UI.calc[ds.calc]=el.value;render()}

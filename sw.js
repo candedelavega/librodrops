@@ -1,6 +1,6 @@
 // Service worker: la app abre sin conexión.
 // Al publicar cambios, subí el número de versión para forzar la actualización.
-const CACHE = "libro-drops-v3";
+const CACHE = "libro-drops-v4";
 const ASSETS = [
   "./",
   "./index.html",
