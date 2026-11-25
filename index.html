@@ -973,36 +973,117 @@ function vCaidaForm(eq){const d=draft||{};const lb=libro(eq);const k=consecuenci
   <div class="row" style="margin-top:14px"><button class="btn primary" data-act="guardarCaida">Guardar</button><button class="btn ghost" data-act="closeSheet">Cancelar</button></div>`;
 }
 
-/* ============ Excel ============ */
-const XLSX_LIB="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";let xlsxLib=null;
-function cargarXLSX(){if(window.XLSX)return Promise.resolve();if(!xlsxLib)xlsxLib=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=XLSX_LIB;sc.onload=res;sc.onerror=()=>{xlsxLib=null;rej(new Error("xlsx"))};document.head.appendChild(sc)});return xlsxLib}
+/* ============ Excel (tipo tablero) ============ */
+const XLSX_LIB="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";let xlsxLib=null;
+function cargarXLSX(){if(window.ExcelJS)return Promise.resolve();if(!xlsxLib)xlsxLib=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=XLSX_LIB;sc.onload=res;sc.onerror=()=>{xlsxLib=null;rej(new Error("xlsx"))};document.head.appendChild(sc)});return xlsxLib}
+const XC={acero:"FF1F2B31",acero2:"FF2B3A42",signal:"FFF2B300",red:"FFC3311C",redS:"FFF8DED8",amb:"FFC98A00",ambS:"FFFDF0C8",grn:"FF2C7647",grnS:"FFDCEFE2",bg:"FFEDEFEB",line:"FFD2D7D3",muted:"FF56646B",ink:"FF1B2328",white:"FFFFFFFF"};
+function svgPNG(svg,w,h){return new Promise(res=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(im,0,0,w,h);res(c.toDataURL("image/png"))};im.onerror=()=>res(null);
+  im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg.includes("xmlns")?svg:svg.replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" '))})}
+function chartPNG({tipo,labels,values,colors,w=640,h=320,vacio}){
+  const c=document.createElement("canvas");const k=2;c.width=w*k;c.height=h*k;const g=c.getContext("2d");g.scale(k,k);
+  g.fillStyle="#fff";g.fillRect(0,0,w,h);g.font="14px Arial";
+  const max=Math.max(1,...values);
+  if(!values.some(v=>v>0)){g.fillStyle="#56646B";g.textAlign="center";g.fillText(vacio||"Sin datos todavía",w/2,h/2);return c.toDataURL("image/png")}
+  if(tipo==="barH"){const lw=200,top=16,rh=Math.min(44,(h-top*2)/labels.length);
+    labels.forEach((l,i)=>{const y=top+i*rh,bw=(w-lw-60)*values[i]/max;g.fillStyle="#1B2328";g.textAlign="right";g.textBaseline="middle";
+      g.fillText(l.length>26?l.slice(0,25)+"…":l,lw-10,y+rh/2);g.fillStyle=colors[i%colors.length];
+      const r=7,bh=rh*.56,by=y+(rh-bh)/2;g.beginPath();g.roundRect?g.roundRect(lw,by,Math.max(bw,6),bh,r):g.rect(lw,by,Math.max(bw,6),bh);g.fill();
+      g.fillStyle="#1B2328";g.textAlign="left";g.font="bold 15px Arial";g.fillText(String(values[i]),lw+Math.max(bw,6)+8,y+rh/2);g.font="14px Arial"})}
+  else if(tipo==="col"){const left=20,bottom=34,top=24,cw=(w-left*2)/labels.length;
+    g.strokeStyle="#D2D7D3";g.beginPath();g.moveTo(left,h-bottom+.5);g.lineTo(w-left,h-bottom+.5);g.stroke();
+    labels.forEach((l,i)=>{const bh=(h-bottom-top-14)*values[i]/max,x=left+i*cw+cw*.22,bw=cw*.56;g.fillStyle=colors[i%colors.length];
+      g.beginPath();g.roundRect?g.roundRect(x,h-bottom-bh,bw,Math.max(bh,2),[6,6,0,0]):g.rect(x,h-bottom-bh,bw,Math.max(bh,2));g.fill();
+      g.fillStyle="#1B2328";g.textAlign="center";g.font="bold 15px Arial";g.fillText(String(values[i]),x+bw/2,h-bottom-bh-8);g.font="14px Arial";g.fillStyle="#56646B";g.fillText(l,x+bw/2,h-bottom+20)})}
+  else if(tipo==="dona"){const cx=h/2+10,cy=h/2,R=h/2-20,r0=R*.58,tot=values.reduce((a,b)=>a+b,0);let a0=-Math.PI/2;
+    values.forEach((v,i)=>{if(!v)return;const a1=a0+v/tot*Math.PI*2;g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,a0,a1);g.closePath();g.fillStyle=colors[i];g.fill();a0=a1});
+    g.beginPath();g.arc(cx,cy,r0,0,Math.PI*2);g.fillStyle="#fff";g.fill();g.fillStyle="#1B2328";g.textAlign="center";g.textBaseline="middle";g.font="bold 34px Arial";g.fillText(String(tot),cx,cy-6);g.font="13px Arial";g.fillStyle="#56646B";g.fillText("abiertos",cx,cy+20);
+    labels.forEach((l,i)=>{const y=cy-labels.length*16+i*32+16;g.fillStyle=colors[i];g.fillRect(h+40,y-8,16,16);g.fillStyle="#1B2328";g.textAlign="left";g.font="15px Arial";g.fillText(`${l}: ${values[i]}`,h+64,y)})}
+  return c.toDataURL("image/png");
+}
 async function exportarExcel(eq){
   toast("Preparando el Excel…");
   try{await cargarXLSX()}catch(e){toast("No se pudo cargar el generador de Excel. Revisá la conexión a internet.");return}
-  const lb=libro(eq);const itemDe={};lb.zonas.forEach(z=>z.items.forEach(it=>itemDe[it.id]={z,it}));
+  const M=metricasPanel(eq),lb=M.lb;const itemDe={};lb.zonas.forEach(z=>z.items.forEach(it=>itemDe[it.id]={z,it}));
   const E=v=>v===undefined||v===null?"":v;
-  const hojas={
-    "Hallazgos":hallz(eq).map(h=>({Código:h.codigo,Zona:h.zona,Ítem:h.item,Riesgo:RIESGO_TXT[h.riesgo||""],Descripción:h.descripcion,Responsable:E(h.responsable),Creado:fmtF(h.creado),"Fecha límite":h.fechaLimite?fmtF(h.fechaLimite):"",Estado:h.estado==="cerrado"?"Cerrado":(h.fechaLimite&&h.fechaLimite<hoy()?"Vencido":"Abierto"),Cierre:h.cierre?fmtF(h.cierre.fecha):"","Días para cerrar":h.cierre?dias(h.creado,h.cierre.fecha):""})),
-    "Inspecciones":insps(eq).map(i=>({Tipo:TIPO_TXT[i.tipo]||i.tipo,Motivo:E(i.motivo),Fecha:fmtF(i.fecha),Lugar:E(i.pozo),Inspector:E(i.inspector),Estado:i.estado==="cerrada"?"Cerrada":"Abierta",Cierre:i.fechaFin?fmtF(i.fechaFin):""})),
-    "Resultados":insps(eq).filter(i=>!esLista(i.tipo)).flatMap(i=>Object.entries(i.resultados||{}).filter(([id,r])=>r.estado).map(([id,r])=>{const x=itemDe[id];return{Inspección:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Código:x?codigo(eq,x.z,x.it):"",Zona:x?x.z.nombre:"",Componente:x?x.it.desc:"",Estado:r.estado==="bien"?"Bien":r.estado==="mal"?"Mal":"No corresponde",Observaciones:E(r.obs)}})),
-    "Check lists":insps(eq).filter(i=>esLista(i.tipo)).flatMap(i=>(i.checklist||[]).map((c,k)=>({Lista:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Punto:k+1,Pregunta:(LISTAS[i.tipo]||LISTAS.checklist).q[k]||"",Respuesta:c.r==="si"?"Sí":c.r==="no"?"No":"",Observaciones:E(c.obs)}))),
-    "Herramientas":regs(eq).flatMap(r=>(r.items||[]).map(t=>({Fecha:fmtF(r.creado),Tarea:E(r.tarea),Persona:E(r.persona),Herramienta:t.desc,"Peso (kg)":E(t.peso),Amarre:AMARRE[t.amarre]||"",Bajó:t.bajo?"Sí":"No",Registro:r.estado==="cerrado"?"Cerrado":"Abierto"}))),
-    "Caídas":caidas(eq).map(c=>({Fecha:fmtF(c.fecha),Zona:E(c.zona),Objeto:E(c.objeto),"Masa (kg)":E(c.masa),"Altura (m)":E(c.altura),Consecuencia:CONS[c.cons]?CONS[c.cons].t:"",Lesionados:c.lesion==="si"?"Sí":"No",Qué_pasó:E(c.desc),Causa:E(c.causa),Lección:E(c.leccion)})),
-    "Libro":lb.zonas.flatMap(z=>z.items.map(it=>({Código:codigo(eq,z,it),Zona:z.nombre,Acceso:z.acceso==="roja"?"Zona roja":z.acceso==="verde"?"Zona verde":"",Componente:it.desc,Riesgo:RIESGO_TXT[it.riesgo||""],"Fijación primaria":E(it.primaria),"Retención secundaria":E(it.secundaria),"Aseguramiento de seguridad":E(it.seguridad),"Qué verificar":E(it.criterio),Frecuencia:FREC[it.frec]?FREC[it.frec].t:"Con la inspección DROPS",Temporario:it.temp==="si"?("Sí"+(it.retiro?", retirar el "+fmtF(it.retiro):"")):""})))
-  };
-  const wb=XLSX.utils.book_new();
-  Object.entries(hojas).forEach(([n,rows])=>{const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Sin_datos:""}]);
-    const keys=Object.keys(rows[0]||{Sin_datos:""});ws["!cols"]=keys.map(k=>({wch:Math.min(50,Math.max(k.length,...rows.map(r=>String(r[k]??"").length))+2)}));XLSX.utils.book_append_sheet(wb,ws,n)});
-  const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  const wb=new ExcelJS.Workbook();wb.creator="Libro DROPS";wb.created=new Date();
+  const fill=c=>({type:"pattern",pattern:"solid",fgColor:{argb:c}});
+  const ws=wb.addWorksheet("Panel",{views:[{showGridLines:false}],properties:{tabColor:{argb:XC.signal}},pageSetup:{orientation:"portrait",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9}});
+  ws.columns=Array.from({length:12},()=>({width:11.5}));
+  const cell=(ref,v,st)=>{const c=ws.getCell(ref);c.value=v;if(st)Object.assign(c,st);return c};
+  const mrg=(r)=>{ws.mergeCells(r)};
+  const L="ABCDEFGHIJKL";
+  // encabezado
+  for(let r=1;r<=2;r++)for(let k=0;k<12;k++)ws.getCell(L[k]+r).fill=fill(XC.acero);
+  ws.getRow(1).height=46;ws.getRow(2).height=20;ws.getRow(3).height=7;ws.getRow(4).height=10;
+  mrg("C1:L1");cell("C1",`Panel DROPS · ${eq.nombre}`,{font:{name:"Arial",size:20,bold:true,color:{argb:XC.white}},alignment:{vertical:"middle"}});
+  mrg("C2:L2");cell("C2",`${EMP.nombre?EMP.nombre+" · ":""}Generado el ${new Date().toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"})}`,{font:{name:"Arial",size:10,color:{argb:"FFC9D2D6"}},alignment:{vertical:"top"}});
+  for(let k=0;k<12;k++)ws.getCell(L[k]+"3").fill=fill(k%2?XC.acero:XC.signal);
+  const logo=await svgPNG(LOGO,160,160);if(logo){const id=wb.addImage({base64:logo,extension:"png"});ws.addImage(id,{tl:{col:0.35,row:0.18},ext:{width:54,height:54}})}
+  // KPIs
+  const kpi=(col,row,lab,val,det,st)=>{const a=L[col],b=L[col+2];const color=st==="mal"?XC.red:st==="warn"?XC.amb:st==="bien"?XC.grn:XC.acero;
+    for(let r=row;r<=row+2;r++)for(let k=col;k<=col+2;k++){const c=ws.getCell(L[k]+r);c.fill=fill(r===row?"FFF6F7F5":XC.white);
+      c.border={top:r===row?{style:"thick",color:{argb:color}}:undefined,left:k===col?{style:"thin",color:{argb:XC.line}}:undefined,right:k===col+2?{style:"thin",color:{argb:XC.line}}:undefined,bottom:r===row+2?{style:"thin",color:{argb:XC.line}}:undefined}}
+    mrg(`${a}${row}:${b}${row}`);mrg(`${a}${row+1}:${b}${row+1}`);mrg(`${a}${row+2}:${b}${row+2}`);
+    cell(a+row,lab,{font:{name:"Arial",size:9,color:{argb:XC.muted}},alignment:{vertical:"middle",indent:1}});
+    cell(a+(row+1),val,{font:{name:"Arial",size:24,bold:true,color:{argb:st==="mal"?XC.red:XC.ink}},alignment:{vertical:"middle",horizontal:"left",indent:1}});
+    cell(a+(row+2),det,{font:{name:"Arial",size:9,color:{argb:XC.muted}},alignment:{vertical:"middle",indent:1,wrapText:true}});
+    ws.getRow(row).height=18;ws.getRow(row+1).height=34;ws.getRow(row+2).height=26};
+  const ve=M.vence;
+  kpi(0,5,"Inspección DROPS",M.enCurso?"En curso":!M.u?"Sin hacer":ve<0?"Vencida":ve+" días",M.u?`Última: ${fmtF(M.u.fechaFin)} · ${frecTxt().toLowerCase()}`:frecTxt(),!M.u||ve<0?"mal":ve<=5?"warn":"bien");
+  kpi(3,5,"Hallazgos abiertos",M.ab.length,M.venc.length?`${M.venc.length} ${M.venc.length===1?"vencido":"vencidos"}`:"Ninguno vencido",M.venc.length?"mal":M.ab.length?"warn":"bien");
+  kpi(6,5,"Tiempo promedio de cierre",M.prom===null?"—":M.prom+" días","Desde que se detecta hasta que se cierra","");
+  kpi(9,5,"Cerrados dentro del plazo",M.plazo===null?"—":M.plazo+" %",M.plazo===null?"Todavía no hay cierres":"Meta sugerida: 80 % o más",M.plazo===null?"":M.plazo<80?"mal":"bien");
+  ws.getRow(8).height=8;
+  kpi(0,9,"Caídas de objetos (12 meses)",M.caidas12,"Registradas en la app",M.caidas12?"mal":"bien");
+  kpi(3,9,"Herramientas en altura ahora",M.herrArriba,M.herrArriba?"Registro abierto":"Nada arriba",M.herrArriba?"warn":"bien");
+  const tot=lb.zonas.reduce((a,z)=>a+z.items.length,0),inc=lb.zonas.reduce((a,z)=>a+z.items.filter(fichaIncompleta).length,0);
+  kpi(6,9,"Componentes en el libro",tot,inc?`${inc} fichas para completar`:"Todas las fichas completas",inc?"warn":"bien");
+  kpi(9,9,"Zonas rojas",lb.zonas.filter(z=>z.acceso==="roja").length,M.rojasSin.length?`${M.rojasSin.length} sin responsable`:"Con responsable definido",M.rojasSin.length?"warn":"");
+  // estado + acciones
+  let r=13;ws.getRow(12).height=12;
+  const estCol=M.est[0]==="mal"?XC.red:M.est[0]==="warn"?XC.amb:XC.grn,estBg=M.est[0]==="mal"?XC.redS:M.est[0]==="warn"?XC.ambS:XC.grnS;
+  mrg(`A${r}:L${r}`);cell("A"+r,`${M.est[1]}${M.acc.length?` · ${M.acc.length} ${M.acc.length===1?"cosa":"cosas"} para resolver`:""}`,{font:{name:"Arial",size:14,bold:true,color:{argb:XC.ink}},fill:fill(estBg),alignment:{vertical:"middle",indent:1},border:{left:{style:"thick",color:{argb:estCol}}}});ws.getRow(r).height=30;r++;
+  M.acc.forEach(x=>{const col=x.c==="mal"?XC.red:XC.amb;mrg(`A${r}:L${r}`);
+    cell("A"+r,{richText:[{text:x.t,font:{name:"Arial",size:11,bold:true,color:{argb:XC.ink}}},{text:"   "+x.d,font:{name:"Arial",size:10,color:{argb:XC.muted}}}]},{alignment:{vertical:"middle",indent:1},fill:fill(XC.white),border:{left:{style:"thick",color:{argb:col}},bottom:{style:"hair",color:{argb:XC.line}}}});ws.getRow(r).height=26;r++});
+  if(!M.acc.length){mrg(`A${r}:L${r}`);cell("A"+r,"No hay hallazgos vencidos ni inspecciones atrasadas.",{font:{name:"Arial",size:10,color:{argb:XC.muted}},alignment:{indent:1}});r++}
+  r++;
+  // gráficos
+  const titulo=(ref,t)=>{mrg(ref);const c=ws.getCell(ref.split(":")[0]);c.value=t;c.font={name:"Arial",size:12,bold:true,color:{argb:XC.ink}};c.border={bottom:{style:"medium",color:{argb:XC.signal}}}};
+  const img=(png,col,row,w,h)=>{const id=wb.addImage({base64:png,extension:"png"});ws.addImage(id,{tl:{col,row},ext:{width:w,height:h}})};
+  titulo(`A${r}:F${r}`,"Hallazgos abiertos por zona");titulo(`G${r}:L${r}`,"Hallazgos abiertos por riesgo");ws.getRow(r).height=22;r++;
+  const pz=M.porZona;
+  img(chartPNG({tipo:"barH",labels:pz.map(x=>x.z.nombre),values:pz.map(x=>x.n),colors:["#C3311C"],w:460,h:230,vacio:"No hay hallazgos abiertos"}),0.1,r-1+0.3,440,220);
+  const rk=["alto","medio","bajo",""].map(k=>M.ab.filter(h=>(h.riesgo||"")===k).length);
+  img(chartPNG({tipo:"dona",labels:["Riesgo alto","Riesgo medio","Riesgo bajo","Sin clasificar"],values:rk,colors:["#C3311C","#C98A00","#2C7647","#8A969B"],w:460,h:230,vacio:"No hay hallazgos abiertos"}),6.1,r-1+0.3,440,220);
+  for(let k=0;k<12;k++)ws.getRow(r+k).height=19;r+=13;
+  titulo(`A${r}:F${r}`,"Inspecciones cerradas por mes");titulo(`G${r}:L${r}`,"Componentes que más fallan");ws.getRow(r).height=22;r++;
+  img(chartPNG({tipo:"col",labels:M.meses.map(m=>m.t),values:M.meses.map(m=>m.n),colors:["#2B3A42","#2B3A42","#2B3A42","#2B3A42","#2B3A42","#F2B300"],w:460,h:230}),0.1,r-1+0.3,440,220);
+  img(chartPNG({tipo:"barH",labels:M.top.map(x=>`${x.h.codigo} ${x.h.item}`),values:M.top.map(x=>x.n),colors:["#C98A00"],w:460,h:230,vacio:"Ningún componente repite hallazgos"}),6.1,r-1+0.3,440,220);
+  for(let k=0;k<12;k++)ws.getRow(r+k).height=19;r+=13;
+  mrg(`A${r}:L${r}`);cell("A"+r,"Libro DROPS © 2026 Candela de la Vega. El detalle de cada dato está en las hojas siguientes.",{font:{name:"Arial",size:8,italic:true,color:{argb:XC.muted}},alignment:{indent:1}});
+  // hojas de datos con estilo
+  const hoja=(nombre,rows,opt={})=>{const w=wb.addWorksheet(nombre,{views:[{state:"frozen",ySplit:1,showGridLines:false}],properties:{tabColor:{argb:opt.tab||XC.acero}},pageSetup:{orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9}});
+    const keys=Object.keys(rows[0]||{"Sin datos":""});w.columns=keys.map(k=>({header:k,key:k,width:Math.min(48,Math.max(k.length+4,...rows.map(x=>String(x[k]??"").length+2)))}));
+    rows.forEach(x=>w.addRow(x));const hr=w.getRow(1);hr.height=24;
+    hr.eachCell(c=>{c.fill=fill(XC.acero);c.font={name:"Arial",bold:true,color:{argb:XC.white},size:10};c.alignment={vertical:"middle"};c.border={bottom:{style:"medium",color:{argb:XC.signal}}}});
+    w.eachRow((row,n)=>{if(n===1)return;row.eachCell({includeEmpty:true},c=>{c.font={name:"Arial",size:10,color:{argb:XC.ink}};c.alignment={vertical:"top",wrapText:true};c.border={bottom:{style:"hair",color:{argb:XC.line}}};if(n%2===0)c.fill=fill("FFF6F7F5")})});
+    const tag={Vencido:[XC.redS,XC.red],Mal:[XC.redS,XC.red],"Riesgo alto":[XC.redS,XC.red],No:[XC.redS,XC.red],Abierto:[XC.ambS,XC.amb],Abierta:[XC.ambS,XC.amb],"Riesgo medio":[XC.ambS,XC.amb],"Zona roja":[XC.redS,XC.red],Cerrado:[XC.grnS,XC.grn],Cerrada:[XC.grnS,XC.grn],Bien:[XC.grnS,XC.grn],"Riesgo bajo":[XC.grnS,XC.grn],Sí:[XC.grnS,XC.grn]};
+    (opt.tags||[]).forEach(k=>{const ci=keys.indexOf(k)+1;if(ci<1)return;w.getColumn(ci).eachCell((c,n)=>{if(n===1)return;const t=tag[c.value];if(t){c.fill=fill(t[0]);c.font={name:"Arial",size:10,bold:true,color:{argb:t[1]}}}})});
+    if(rows.length)w.autoFilter={from:{row:1,column:1},to:{row:1,column:keys.length}};return w};
+  hoja("Hallazgos",M.hs.map(h=>({Código:h.codigo,Zona:h.zona,Ítem:h.item,Riesgo:RIESGO_TXT[h.riesgo||""],Descripción:h.descripcion,Responsable:E(h.responsable),Creado:fmtF(h.creado),"Fecha límite":h.fechaLimite?fmtF(h.fechaLimite):"",Estado:h.estado==="cerrado"?"Cerrado":(h.fechaLimite&&h.fechaLimite<hoy()?"Vencido":"Abierto"),Cierre:h.cierre?fmtF(h.cierre.fecha):"","Días para cerrar":h.cierre?dias(h.creado,h.cierre.fecha):""})),{tags:["Riesgo","Estado"],tab:XC.red});
+  hoja("Inspecciones",insps(eq).map(i=>({Tipo:TIPO_TXT[i.tipo]||i.tipo,Motivo:E(i.motivo),Fecha:fmtF(i.fecha),Lugar:E(i.pozo),Inspector:E(i.inspector),Estado:i.estado==="cerrada"?"Cerrada":"Abierta",Cierre:i.fechaFin?fmtF(i.fechaFin):""})),{tags:["Estado"]});
+  hoja("Resultados",insps(eq).filter(i=>!esLista(i.tipo)).flatMap(i=>Object.entries(i.resultados||{}).filter(([id,x])=>x.estado).map(([id,x])=>{const o=itemDe[id];return{Inspección:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Código:o?codigo(eq,o.z,o.it):"",Zona:o?o.z.nombre:"",Componente:o?o.it.desc:"",Estado:x.estado==="bien"?"Bien":x.estado==="mal"?"Mal":"No corresponde",Observaciones:E(x.obs)}})),{tags:["Estado"]});
+  hoja("Check lists",insps(eq).filter(i=>esLista(i.tipo)).flatMap(i=>(i.checklist||[]).map((c,k)=>({Lista:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Punto:k+1,Pregunta:(LISTAS[i.tipo]||LISTAS.checklist).q[k]||"",Respuesta:c.r==="si"?"Sí":c.r==="no"?"No":"",Observaciones:E(c.obs)}))),{tags:["Respuesta"]});
+  hoja("Herramientas",regs(eq).flatMap(x=>(x.items||[]).map(t=>({Fecha:fmtF(x.creado),Tarea:E(x.tarea),Persona:E(x.persona),Herramienta:t.desc,"Peso (kg)":E(t.peso),Amarre:AMARRE[t.amarre]||"",Bajó:t.bajo?"Sí":"No",Registro:x.estado==="cerrado"?"Cerrado":"Abierto"}))),{tags:["Bajó","Registro"]});
+  hoja("Caídas",caidas(eq).map(c=>({Fecha:fmtF(c.fecha),Zona:E(c.zona),Objeto:E(c.objeto),"Masa (kg)":E(c.masa),"Altura (m)":E(c.altura),Consecuencia:CONS[c.cons]?CONS[c.cons].t:"",Lesionados:c.lesion==="si"?"Sí":"No","Qué pasó":E(c.desc),Causa:E(c.causa),Lección:E(c.leccion)})));
+  hoja("Libro",lb.zonas.flatMap(z=>z.items.map(it=>({Código:codigo(eq,z,it),Zona:z.nombre,Acceso:z.acceso==="roja"?"Zona roja":z.acceso==="verde"?"Zona verde":"",Componente:it.desc,Riesgo:RIESGO_TXT[it.riesgo||""],"Fijación primaria":E(it.primaria),"Retención secundaria":E(it.secundaria),"Aseguramiento de seguridad":E(it.seguridad),"Qué verificar":E(it.criterio),Frecuencia:FREC[it.frec]?FREC[it.frec].t:"Con la inspección DROPS",Temporario:it.temp==="si"?("Sí"+(it.retiro?", retirar el "+fmtF(it.retiro):"")):""}))),{tags:["Riesgo","Acceso"]});
+  const out=await wb.xlsx.writeBuffer();
   await guardarArchivo(`Libro_DROPS_${eq.nombre.replace(/[^\w-]+/g,"_")}_${hoy()}.xlsx`,new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
 }
 
-/* ============ Capacitar ============ */
-function vCapacitar(eq){return vCalc()}
-
 /* ============ Panel de indicadores ============ */
-function vPanel(eq){
-  const lb=libro(eq);if(!lb)return`<div class="loader">Cargando libro…</div>`;
+function metricasPanel(eq){
+  const lb=libro(eq);
   const hs=hallz(eq),ab=hs.filter(h=>h.estado==="abierto"),venc=ab.filter(h=>h.fechaLimite&&h.fechaLimite<hoy());
   const u=ultimaRCCO(eq),vence=u?frecDrops()-dias(u.fechaFin,new Date()):null;
   const enCurso=insps(eq).find(i=>i.estado==="abierta"&&i.tipo==="rcco");
@@ -1039,6 +1120,12 @@ function vPanel(eq){
     meses.push({key,t:MES.at(d.getMonth()),n:insps(eq).filter(i=>i.estado==="cerrada"&&(i.fechaFin||"").slice(0,7)===key).length})}
   const maxM=Math.max(1,...meses.map(m=>m.n));
   const zonaDe=itemId=>lb.zonas.find(z=>z.items.some(it=>it.id===itemId));
+  const caidas12=caidas(eq).filter(c=>dias(c.fecha,new Date())<=365).length;
+  return {lb,hs,ab,venc,u,vence,enCurso,sec,cer,prom,plazo,sinResp,pl,acc,regAb,herrArriba,temps,ctrls,rojasSin,est,porZona,maxZ,cnt,top,maxT,MES,meses,maxM,zonaDe,caidas12};
+}
+function vPanel(eq){
+  const lb=libro(eq);if(!lb)return`<div class="loader">Cargando libro…</div>`;
+  const {hs,ab,venc,u,vence,enCurso,sec,cer,prom,plazo,sinResp,pl,acc,regAb,herrArriba,temps,ctrls,rojasSin,est,porZona,maxZ,cnt,top,maxT,MES,meses,maxM,zonaDe}=metricasPanel(eq);
   return `<h1>Panel</h1><p class="small muted">Lo importante de ${esc(eq.nombre)} en una pantalla. Tocá cualquier dato para ir al detalle.</p>
   <div class="estado ${est[0]}"><h2>${est[1]}</h2><p class="small">${acc.length?`${acc.length} ${pl(acc.length,"cosa para resolver","cosas para resolver")}, de la más urgente a la menos urgente:`:"No hay hallazgos vencidos ni inspecciones atrasadas."}</p></div>
   ${acc.map(x=>`<button class="choice" data-act="${x.a}" data-v="${esc(x.v)}" style="border-left-color:var(--${x.c==="mal"?"red":"amber"})"><h3>${esc(x.t)}</h3><span class="small muted">${esc(x.d)}</span></button>`).join("")}
