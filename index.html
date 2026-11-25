@@ -224,7 +224,8 @@ table.tq td.n.r{color:var(--red)}
 #v3d .cv{position:relative;flex:1;min-height:0}
 #v3d canvas{display:block;width:100%;height:100%}
 #v3d .rot{position:absolute;left:10px;top:10px;background:rgba(217,154,0,.92);color:#1C262B;font-size:.78rem;font-weight:700;padding:4px 9px;border-radius:4px;pointer-events:none}
-#v3d .tip{position:absolute;pointer-events:none;background:#1C262B;border:1px solid #98A5AA;color:#fff;font-size:.8rem;padding:4px 8px;border-radius:5px;transform:translate(-50%,-130%);white-space:nowrap;display:none}
+#v3d .tip{position:absolute;pointer-events:none;background:#1C262B;border:1px solid #98A5AA;color:#fff;font-size:.8rem;line-height:1.35;padding:6px 10px;border-radius:6px;transform:translate(-50%,calc(-100% - 14px));width:max-content;max-width:min(300px,80vw);display:none}
+#v3d .tip b{color:#F2B705}#v3d .tip .tz{color:#98A5AA;font-size:.74rem}#v3d .tip dl{margin:5px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px}#v3d .tip dt{color:#98A5AA}#v3d .tip dd{margin:0}#v3d .tip .th{margin-top:5px;color:#98A5AA;font-size:.72rem}
 #v3d .vl{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.78rem;padding:8px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #2B363B}
 #v3d .vl i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 #v3d .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#98A5AA}
@@ -1464,7 +1465,7 @@ function montarFirma(cv){
 
 /* ============ Visor 3D (modelo CadQuery ilustrativo) ============ */
 const V3={libs:null,init:false,open:false};
-const COL3={rojo:0xE5533C,verde:0x4DAE70,ambar:0xF2B705,gris:0x7E8B90,acero:0x8FA3AC,sel:0xFFFFFF};
+const COL3={rojo:0xE5533C,verde:0x4DAE70,ambar:0xF2B705,naranja:0xE07A2E,gris:0x7E8B90,acero:0x8FA3AC,sel:0xFFFFFF};
 function cargarScript(src){return new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
 function libs3D(){
   if(!V3.libs)V3.libs=cargarScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js")
@@ -1477,7 +1478,7 @@ function shell3D(){
   el=document.createElement("div");el.id="v3d";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label","Modelo 3D del equipo");
   el.innerHTML=`<div class="vh"><h2 id="v3t">Modelo 3D</h2><button id="v3x">Cerrar</button></div>
   <div class="cv" id="v3c"><span class="rot">Modelo ilustrativo, no a escala del equipo real</span><div class="tip" id="v3tip"></div><div class="msg" id="v3m">Cargando el modelo…</div></div>
-  <div class="vl"><span><i style="background:#7E8B90"></i>Sin revisar</span><span><i style="background:#4DAE70"></i>Bien</span><span><i style="background:#E5533C"></i>Mal</span><span><i style="background:#F2B705"></i>Ficha incompleta</span><span style="margin-left:auto;color:#98A5AA">Tocá un punto o una zona; tocá de nuevo para abrir la ficha.</span></div>`;
+  <div class="vl"><span><i style="background:#F2B705"></i>Sin revisar</span><span><i style="background:#4DAE70"></i>Bien</span><span><i style="background:#E5533C"></i>Mal</span><span><i style="background:#E07A2E"></i>Ficha incompleta</span><span style="margin-left:auto;color:#98A5AA">Tocá un punto o una zona; tocá de nuevo para abrir la ficha.</span></div>`;
   document.body.appendChild(el);
   el.querySelector("#v3x").onclick=cerrar3D;
   return el;
@@ -1518,7 +1519,8 @@ function init3D(el){
         const hm=rc.intersectObjects(V3.marcas.children,false)[0];if(hm)return hm.object;const hz=rc.intersectObjects(Object.values(V3.zonas),false)[0];return hz?hz.object:null};
       rnd.domElement.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY]});
       rnd.domElement.addEventListener("pointerup",e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)return;down=null;elegir3D(hit(e),e)});
-      rnd.domElement.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse"||down)return;const o=hit(e);rnd.domElement.style.cursor=o?"pointer":"grab"});
+      rnd.domElement.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse"||down)return;const o=hit(e);rnd.domElement.style.cursor=o?"pointer":"grab";
+        const ver=o&&o.userData.pid?o:V3.sel||null;if(ver!==V3.tipObj)tip3D(ver)});
       window.addEventListener("resize",()=>V3.open&&resize3D());
       res();
     }).catch(()=>rej(new Error("No se pudo cargar el archivo del modelo 3D.")));
@@ -1533,13 +1535,13 @@ function pintar3D(){
   lb.zonas.forEach(z=>{V3.zid[z.cod]=z.id;const o=V3.zonas[z.cod];if(!o)return;const ez=estadoZona(ab,z);
     o.material.color.setHex(ez?(ez.st==="mal"?COL3.rojo:ez.st==="ok"?COL3.verde:COL3.gris):COL3.acero);o.material.emissive.setHex(0);o.userData.z=z});
   while(V3.marcas.children.length)V3.marcas.remove(V3.marcas.children[0]);
-  const geo=new T.SphereGeometry(0.17,16,12);
+  const geo=new T.SphereGeometry(0.21,16,12);
   lb.zonas.forEach(z=>z.items.forEach(it=>{
     const pid=codigo(eq,z,it);let p=PUNTOS3D[pid];
     if(!p){const zc=zonaCentro(z.cod);if(!zc)return;p=[zc.c.x,zc.c.y,zc.c.z]}
     const r=ab&&ab.resultados[it.id]&&ab.resultados[it.id].estado?{estado:ab.resultados[it.id].estado}:ultimoEstado(eq,it.id);
     const st=r&&r.estado==="mal"?"mal":r&&r.estado==="bien"?"bien":fichaIncompleta(it)||sinSec(it)?"inc":"sin";
-    const col={mal:COL3.rojo,bien:COL3.verde,inc:COL3.ambar,sin:COL3.gris}[st];
+    const col={mal:COL3.rojo,bien:COL3.verde,inc:COL3.naranja,sin:COL3.ambar}[st];
     const m=new T.Mesh(geo,new T.MeshBasicMaterial({color:col}));m.position.set(p[0],p[1],p[2]);
     m.userData={pid,itemId:it.id,zid:z.id,desc:it.desc,st};V3.marcas.add(m);
   }));
@@ -1555,7 +1557,7 @@ function enfocar3D(zid,pid){
   let target=new T.Vector3(2,13,0),dist=48;
   const mk=pid&&V3.marcas.children.find(m=>m.userData.pid===pid);
   const z=zid&&lb.zonas.find(x=>x.id===zid);
-  if(mk){target=mk.position.clone();dist=7;V3.sel=mk;tip3D(mk)}
+  if(mk){target=mk.position.clone();dist=11;V3.sel=mk;tip3D(mk)}
   else if(z&&V3.zonas[z.cod]){const zc=zonaCentro(z.cod);target=zc.c;dist=Math.max(7,zc.r*2.6);V3.zonas[z.cod].material.emissive.setHex(0x333333);V3.sel=V3.zonas[z.cod];tip3D(V3.zonas[z.cod])}
   const dir=new T.Vector3(1,.55,.9).normalize();
   tween3D(target,target.clone().add(dir.multiplyScalar(dist)));
@@ -1563,7 +1565,16 @@ function enfocar3D(zid,pid){
 function tip3D(o){
   const tp=document.getElementById("v3tip");if(!tp)return;V3.tipObj=o;
   if(!o){tp.style.display="none";return}
-  const u=o.userData;tp.innerHTML=u.pid?`<b>${esc(u.pid)}</b> · ${esc(u.desc)}`:`<b>${esc(u.z?u.z.nombre:u.zona)}</b>`;tp.style.display="block";
+  const u=o.userData;
+  if(u.pid){
+    const lb=libro(eqAct()),z=lb&&lb.zonas.find(x=>x.id===u.zid),it=z&&z.items.find(x=>x.id===u.itemId)||{};
+    const ST={sin:"Sin revisar",bien:"Bien",mal:"Mal",inc:"Ficha incompleta"};
+    const fila=(t,v)=>v?`<dt>${t}</dt><dd>${esc(v)}</dd>`:"";
+    tp.innerHTML=`<b>${esc(u.pid)}</b> · ${esc(u.desc)}${z?`<div class="tz">${esc(z.nombre)}</div>`:""}
+      <dl>${fila("Estado",ST[u.st])}${fila("Riesgo",it.riesgo)}${fila("Fijación",it.primaria)}${fila("Retención",it.secundaria)}${fila("Seguridad",it.seguridad)}${it.masa&&it.altura?fila("Masa / altura",it.masa+" kg / "+it.altura+" m"):""}</dl>
+      ${V3.sel===o?`<div class="th">Tocá de nuevo para abrir la ficha</div>`:""}`;
+  }else tp.innerHTML=`<b>${esc(u.z?u.z.nombre:u.zona)}</b>`;
+  tp.style.display="block";
 }
 function elegir3D(o){
   if(!o){V3.sel=null;tip3D(null);Object.values(V3.zonas).forEach(z=>z.material.emissive.setHex(0));return}
