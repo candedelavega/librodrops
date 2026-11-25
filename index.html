@@ -727,7 +727,7 @@ function render(){
   else if(UI.tab==="inspeccion")body=UI.insp&&S.data.inspecciones[UI.insp]?vInspRun(eq,S.data.inspecciones[UI.insp]):vInspeccionar(eq);
   else if(UI.tab==="hallazgos")body=vHallazgos(eq);
   else if(UI.tab==="panel")body=vPanel(eq);
-  else body=vCapacitar(eq);
+  else body=vCalc();
   const openH=eq?hallz(eq).filter(h=>h.estado==="abierto").length:0;
   $("#app").innerHTML=`
   <header class="top"><div class="wrap">
