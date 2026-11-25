@@ -148,35 +148,11 @@ main a{color:var(--steel);font-weight:600}
 .kmes i{display:block;width:70%;background:var(--steel);border-radius:4px 4px 0 0;min-height:2px}
 .kmes b{color:var(--ink);font-family:var(--display);font-size:.95rem}
 .flash{animation:flash 2.4s ease-out}
-.barcards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
-.barcards div{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--steel);border-radius:8px;padding:8px;font-size:.78rem;color:var(--muted)}
-.barcards b{display:block;color:var(--ink);font-size:.85rem;margin-bottom:2px}
-.barsvg{width:100%;max-width:420px;display:block;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
-.barsvg .obj{transform-box:fill-box;transform-origin:50% 0}
-.barsvg .sling{transform-box:fill-box;transform-origin:50% 0}
-.barsvg .perno,.barsvg .vib,.barsvg .impacto{transform-box:fill-box;transform-origin:50% 50%}
-.barsvg .impacto{opacity:0}
-.bar-run .vib{animation:bvibra .1s linear 9}
-.s-falla .perno{animation:bperno .7s ease-in 1s forwards}
-.s-eslinga .obj{animation:bcuelga 1.8s ease-out 1.5s forwards}
-.s-eslinga .sling{animation:bestira .35s ease-in 1.5s forwards}
-.s-cae .obj{animation:bcae .75s cubic-bezier(.55,0,1,.45) 1.5s forwards}
-.s-cae .impacto{animation:bimpacto .6s ease-out 2.2s forwards}
-.s-ok .traba{animation:bbrilla 1s ease 1s 2}
-@keyframes bvibra{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
-@keyframes bperno{to{transform:translateY(150px) rotate(120deg);opacity:0}}
-@keyframes bcuelga{0%{transform:translateY(0)}25%{transform:translateY(24px) rotate(0)}45%{transform:translateY(24px) rotate(7deg)}65%{transform:translateY(24px) rotate(-5deg)}82%{transform:translateY(24px) rotate(2deg)}100%{transform:translateY(24px) rotate(0)}}
-@keyframes bestira{to{transform:scaleY(1.8)}}
-@keyframes bcae{to{transform:translateY(128px)}}
-@keyframes bimpacto{0%{opacity:0;transform:scale(.3)}40%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
-@keyframes bbrilla{50%{fill:var(--green);r:7}}
-.barmsg{opacity:0;animation:baparece .4s ease forwards}
-@keyframes baparece{to{opacity:1}}
 .chcard{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--steel);border-radius:8px;padding:16px;min-height:200px;animation:chentra .35s ease-out}
 .chcard h2{margin:0 0 8px}.chcard p,.chcard li{font-size:1.02rem;line-height:1.45}
 @keyframes chentra{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
 .chdots{display:flex;gap:6px;justify-content:center;margin:10px 0}.chdots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.chdots i.on{background:var(--ink)}
-@media (prefers-reduced-motion:reduce){.barsvg *,.barmsg,.chcard{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}
+@media (prefers-reduced-motion:reduce){.chcard{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
 
 /* Hallazgos */
@@ -972,41 +948,8 @@ async function exportarExcel(eq){
 /* ============ Capacitar ============ */
 function vCapacitar(eq){
   const t=UI.capTab||"calc";
-  const tabs=`<div class="filters" role="group" aria-label="Capacitar">${[["calc","Calculadora"],["barreras","3 barreras"],["charla","Charla 5 min"]].map(([k,x])=>`<button aria-pressed="${t===k}" data-act="capTab" data-v="${k}">${x}</button>`).join("")}</div>`;
-  return tabs+(t==="barreras"?vBarreras():t==="charla"?vCharla(eq):vCalc());
-}
-function vBarreras(){
-  const B=UI.bar||(UI.bar={sec:true,seg:true,n:0});
-  const esc2=B.n?(B.sec?"s-ok":B.seg?"s-falla s-eslinga":"s-falla s-cae"):"";
-  const k=consecuencia(4,12);
-  const msg=!B.n?"":B.sec?(B.seg?["bien","La retención secundaria trabó la fijación: con la vibración no se aflojó. El objeto sigue en su lugar."]:["bien","La traba aguantó. Pero sin eslinga no hay respaldo si se rompe el soporte: conviene agregarla."])
-    :B.seg?["warn","Sin traba, la vibración aflojó los bulones y se soltaron. La eslinga retuvo el objeto: no cayó, pero quedó colgando. Hay que reponer la traba y revisar la eslinga."]
-    :["mal",`Sin traba ni eslinga, el objeto cae. Un reflector de 4 kg desde 12 m: ${CONS[k.c].t.toLowerCase()} (${Math.round(k.e)} J).`];
-  const run=B.n?" bar-run "+esc2:"";
-  return `<h1>Las 3 barreras</h1><p class="small muted">Un objeto en altura cae solo cuando fallan todas sus barreras. Probá qué pasa cuando falta cada una.</p>
-  <div class="barcards"><div style="border-top-color:var(--steel)"><b>1. Fijación primaria</b>Lo sostiene: bulones, grampas, pernos.</div><div style="border-top-color:${B.sec?"var(--green)":"var(--red)"}"><b>2. Retención secundaria</b>Traba la fijación para que no se afloje.</div><div style="border-top-color:${B.seg?"var(--green)":"var(--red)"}"><b>3. Aseguramiento</b>Lo retiene si todo lo demás falla.</div></div>
-  <div class="row wrapflex" style="gap:8px;margin-bottom:10px">
-    <button class="btn ${B.sec?"":"ghost"}" data-act="barTog" data-v="sec" aria-pressed="${B.sec}">${B.sec?"✓":"✗"} Retención secundaria</button>
-    <button class="btn ${B.seg?"":"ghost"}" data-act="barTog" data-v="seg" aria-pressed="${B.seg}">${B.seg?"✓":"✗"} Eslinga de seguridad</button></div>
-  <svg class="barsvg${run}" viewBox="0 0 320 250" role="img" aria-label="Animación de un reflector en altura con sus barreras">
-    <rect x="0" y="0" width="320" height="250" fill="var(--sunk)"/>
-    <rect x="20" y="22" width="280" height="16" rx="3" fill="var(--steel)"/><text x="26" y="16" font-size="10" fill="var(--muted)">Estructura del mástil</text>
-    ${B.seg?`<line class="sling" x1="214" y1="38" x2="214" y2="68" stroke="var(--amber)" stroke-width="3" stroke-dasharray="4 2"/><text x="222" y="58" font-size="10" fill="var(--muted)">Eslinga</text>`:""}
-    <g class="obj"><g class="vib">
-      <rect x="132" y="38" width="56" height="12" fill="var(--steel)" opacity=".8"/>
-      <g class="perno"><rect x="140" y="30" width="6" height="26" fill="var(--ink)"/><circle class="traba" cx="143" cy="58" r="${B.sec?5:0}" fill="var(--amber)"/></g>
-      <g class="perno"><rect x="174" y="30" width="6" height="26" fill="var(--ink)"/><circle class="traba" cx="177" cy="58" r="${B.sec?5:0}" fill="var(--amber)"/></g>
-      <rect x="128" y="62" width="92" height="40" rx="6" fill="var(--ink)"/><rect x="134" y="68" width="40" height="28" rx="4" fill="#FFE58A"/><text x="196" y="88" font-size="10" fill="var(--surface)" text-anchor="middle">4 kg</text>
-      ${B.seg?`<circle cx="214" cy="68" r="3" fill="var(--amber)"/>`:""}
-    </g></g>
-    <rect x="0" y="232" width="320" height="18" fill="var(--line)"/>
-    <rect x="96" y="226" width="150" height="6" fill="var(--red)" opacity=".5"/><text x="250" y="228" font-size="10" fill="var(--red)">Zona roja</text>
-    <g class="impacto"><circle cx="174" cy="226" r="26" fill="var(--red)" opacity=".25"/><text x="70" y="212" font-size="14" font-weight="700" text-anchor="middle" fill="var(--red)">¡Impacto!</text></g>
-    <text x="10" y="228" font-size="10" fill="var(--muted)">12 m</text>
-  </svg>
-  <button class="btn primary block" style="margin-top:10px" data-act="barRun">${B.n?"Repetir":"Simular vibración"}</button>
-  ${msg?`<div class="estado ${msg[0]} barmsg" style="animation-delay:${B.sec?1.6:2.6}s"><p>${msg[1]}</p></div>`:""}
-  <p class="small muted" style="margin-top:8px">Por eso la app marca como hallazgo todo componente de riesgo alto sin retención secundaria, aunque esté bien.</p>`;
+  const tabs=`<div class="filters" role="group" aria-label="Capacitar">${[["calc","Calculadora"],["charla","Charla 5 min"]].map(([k,x])=>`<button aria-pressed="${t===k}" data-act="capTab" data-v="${k}">${x}</button>`).join("")}</div>`;
+  return tabs+(t==="charla"?vCharla(eq):vCalc());
 }
 const TEMAS=[
  {t:"Fijación confiable: las 3 barreras",f:"DROPS · Reliable Securing",x:"DROPS dice que todo lo que está en altura tiene que estar asegurado con tres barreras: la fijación primaria, que lo sostiene; la retención secundaria, que traba esa fijación; y el aseguramiento de seguridad, que lo retiene si todo lo demás falla. Un objeto cae solo cuando fallan todas.",ej:{o:"Un reflector de 4 kg",m:4,h:12},a:["Antes de subir, miramos que cada fijación tenga su traba.","Si algo puede caer sobre alguien, tiene que tener eslinga de seguridad.","Si falta una barrera, no se sigue: se reporta como hallazgo."],q:"¿Conocen algo en el equipo que tenga una sola barrera?"},
@@ -1637,8 +1580,6 @@ document.addEventListener("click",e=>{
     case"excel":exportarExcel(eq);return;
     case"capTab":UI.capTab=v;draft=null;break;
     case"irCharla":UI.todos=false;UI.tab="calc";UI.capTab="charla";window.scrollTo(0,0);break;
-    case"barTog":UI.bar[v]=!UI.bar[v];UI.bar.n=0;break;
-    case"barRun":UI.bar.n++;break;
     case"chTema":UI.chTema=+v;draft=null;break;
     case"asRapido":if(draft){draft.nombre=v}break;
     case"limpiarAs":if(draft)draft.firmaAs=null;break;
