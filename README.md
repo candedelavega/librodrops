@@ -1,3 +1,5 @@
+<img src="logo.svg" width="72" alt="Logo de Libro DROPS">
+
 # Libro DROPS
 
 App web instalable de gestión DROPS (prevención de caída de objetos) para equipos de pulling y workover. Sirve para cualquier empresa: los datos de la empresa se cargan en la app.

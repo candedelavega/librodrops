@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Libro DROPS</title>
 <script src="pwa.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%231F2B31%22/%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23F2B300%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20stroke-width%3D%223.6%22%20d%3D%22M16%2053%2027%2011h5l11%2042%22/%3E%3Cpath%20stroke-width%3D%223%22%20d%3D%22M22.3%2029h14.4M18.6%2043h21.8M22.3%2029l18.1%2014M36.7%2029%2018.6%2043%22/%3E%3Cpath%20stroke-width%3D%223.6%22%20d%3D%22M11%2053h42M32%2011h15%22/%3E%3Cpath%20stroke-width%3D%222.2%22%20d%3D%22M47%2011v11%22/%3E%3C/g%3E%3Crect%20x%3D%2242%22%20y%3D%2222%22%20width%3D%2210%22%20height%3D%2210%22%20rx%3D%222.4%22%20fill%3D%22%23E5482F%22/%3E%3C/svg%3E">
+<meta name="theme-color" content="#1F2B31">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#E9ECEA; --surface:#FFFFFF; --sunk:#F3F5F4; --ink:#1C262B; --muted:#5B686E; --line:#CBD2CF;
@@ -250,6 +252,57 @@ table.tq td.n.r{color:var(--red)}
 }
 @media (prefers-reduced-motion:reduce){.fall .ob{top:178px!important}}
 @media (min-width:640px){.summary b{font-size:2rem}}
+
+/* ============ Diseño v2: señalética de locación ============ */
+:root{--acero:#1F2B31;--acero-2:#2B3A42;--signal:#F2B300;--signal-soft:#FFF3C4;
+  --bg:#EDEFEB;--surface:#FFFFFF;--sunk:#F3F4F1;--ink:#1B2328;--muted:#56646B;--line:#D2D7D3;
+  --red:#C3311C;--red-soft:#F8DED8;--amber:#C98A00;--amber-soft:#FDF0C8;--green:#2C7647;--green-soft:#DCEFE2;--steel:#1F2B31}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--acero:#0E1518;--acero-2:#1A252A;--signal:#F5BE1E;--signal-soft:#3A2F0C;
+  --bg:#12191C;--surface:#1A2327;--sunk:#151D20;--ink:#E6EBE8;--muted:#9AA7AC;--line:#2C383D;--steel:#A9BCC4}}
+body{background:var(--bg);font-feature-settings:"tnum" 1}
+h1{font-size:2.05rem;font-weight:800;letter-spacing:-.005em}
+h2{font-size:1.45rem;font-weight:700}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.top{background:var(--acero);border-bottom:0;color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.top::after{content:"";display:block;height:5px;background:repeating-linear-gradient(135deg,var(--signal) 0 9px,var(--acero) 9px 18px)}
+.top .wrap{padding:9px 16px}
+.brand{font-weight:800;font-size:1.32rem;letter-spacing:.01em;color:#fff;gap:9px}
+.brand .logo{width:32px;height:32px;flex:none;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+.brand small{color:rgba(255,255,255,.66)!important;font-family:var(--body)}
+.eq-select{background:var(--acero-2);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:10px;font-weight:600;padding:8px 10px}
+.eq-select option{color:#1B2328;background:#fff}
+.banner{background:none;border:0;border-left:3px solid var(--signal);border-radius:0;padding:1px 10px;color:var(--muted);font-size:.8rem;margin:2px 0 12px}
+.wrap{padding-top:16px}
+.panel,.item,.hz,.choice,.estado,.summary div,.kgrid .k,.zb{border-radius:12px}
+.btn{border-radius:10px;min-height:46px}
+.btn.primary{background:var(--acero);border-color:var(--acero);color:#fff}
+.btn.primary:not(:disabled):active{transform:translateY(1px)}
+.link{color:var(--ink);text-decoration-color:var(--signal);text-decoration-thickness:2px}
+.t{border-radius:10px}
+.filters button{min-height:40px}
+.filters button[aria-pressed="true"]{background:var(--acero);border-color:var(--acero);color:#fff;box-shadow:inset 0 -3px 0 var(--signal)}
+.summary b,.kgrid .k b{font-weight:800;letter-spacing:-.01em}
+.summary b{font-size:2rem}.kgrid .k b{font-size:2.2rem}
+.kgrid .k{padding:12px}
+.estado{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:start}
+.estado::before{content:"";grid-row:span 2;width:34px;height:34px;border-radius:50%;margin-top:2px;background:var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12.5 4 4L18 8'/%3E%3C/svg%3E") center/20px no-repeat}
+.estado.warn::before{background:var(--amber) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 7v6M12 17v.5'/%3E%3C/svg%3E") center/20px no-repeat}
+.estado.mal::before{background:var(--red) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 7v6M12 17v.5'/%3E%3C/svg%3E") center/20px no-repeat}
+.estado>*{grid-column:2}
+.kbar i{height:12px;border-radius:6px}
+.kmes i{background:var(--acero-2);opacity:.85;border-radius:6px 6px 0 0}
+.kmes .hoy i{background:var(--signal);opacity:1}.kmes .hoy{color:var(--ink);font-weight:700}
+.tabs{background:var(--acero);border-top:0;box-shadow:0 -1px 0 rgba(0,0,0,.25)}
+.tabs button{color:rgba(255,255,255,.6);position:relative}
+.tabs button[aria-current="page"]{color:#fff}
+.tabs button[aria-current="page"] svg{color:var(--signal)}
+.tabs button[aria-current="page"]::before{content:"";position:absolute;top:0;left:24%;right:24%;height:3px;border-radius:0 0 3px 3px;background:var(--signal)}
+.badge{box-shadow:0 0 0 2px var(--acero)}
+.hero{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.hero .logo{width:72px;height:72px;flex:none;border-radius:18px}
+.choice{transition:border-color .15s}
+.seg button{border-radius:10px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{background:var(--signal);border-color:var(--signal);color:#14191C}:root:not([data-theme="light"]) .filters button[aria-pressed="true"]{background:var(--acero-2)}}
 </style>
 </head>
 <body>
@@ -654,6 +707,7 @@ function cerrarInspeccion(i){
 }
 
 /* ============ Vistas ============ */
+const LOGO='<svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#1F2B31"/><g fill="none" stroke="#F2B300" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="3.6" d="M16 53 27 11h5l11 42"/><path stroke-width="3" d="M22.3 29h14.4M18.6 43h21.8M22.3 29l18.1 14M36.7 29 18.6 43"/><path stroke-width="3.6" d="M11 53h42M32 11h15"/><path stroke-width="2.2" d="M47 11v11"/></g><rect x="42" y="22" width="10" height="10" rx="2.4" fill="#E5482F"/></svg>';
 const ICON={
  equipo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 22 11 2h2l2 20M9.6 16h4.8M10.2 10h3.6M7 2h10"/></svg>',
  inspeccion:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m9 12 2 2 4-4M9 3h6v3H9z"/></svg>',
@@ -677,7 +731,7 @@ function render(){
   const openH=eq?hallz(eq).filter(h=>h.estado==="abierto").length:0;
   $("#app").innerHTML=`
   <header class="top"><div class="wrap">
-    <span class="brand"><i></i>Libro DROPS${EMP.nombre?`<small class="muted" style="font-weight:500;font-size:.8rem">${esc(EMP.nombre)}</small>`:""}</span>
+    <span class="brand">${LOGO}<span>Libro DROPS</span>${EMP.nombre?`<small class="muted" style="font-weight:500;font-size:.8rem">${esc(EMP.nombre)}</small>`:""}</span>
     ${equipos().length?`<select class="eq-select" id="eqSel" aria-label="Equipo">${equipos().length>1?`<option value="__todos" ${UI.todos?"selected":""}>Todos los equipos</option>`:""}${equipos().map(e=>`<option value="${e.id}" ${eq&&e.id===eq.id&&!UI.todos?"selected":""}>${esc(e.nombre)}</option>`).join("")}<option value="__nuevo">+ Nuevo equipo</option></select>`:""}
   </div></header>
   <main class="wrap">
@@ -708,7 +762,7 @@ function vTodos(){
 }
 function vOnboarding(){
   return `<div class="stack" style="padding-top:20px">
-    <h1>Armá el libro DROPS del equipo</h1>
+    <div class="hero">${LOGO}<div><h1>Armá el libro DROPS del equipo</h1></div></div>
     <p class="muted">El libro arranca con las 11 zonas y los ítems de la plantilla base para equipos de pulling y workover. Después podés completar, corregir y sumar los componentes de tu equipo.</p>
     <button class="btn ghost block" data-act="sheet" data-v="empresa">Datos de la empresa${EMP.nombre?` · ${esc(EMP.nombre)}`:""}</button>
     <div class="panel">
@@ -1002,7 +1056,7 @@ function vPanel(eq){
   <div class="panel" style="margin-top:10px"><h3>Componentes que más fallan</h3><p class="small muted">Con más de un hallazgo. Si se repite, la fijación no es confiable: conviene cambiar el método, no solo corregirlo.</p>
     ${top.length?top.map(x=>{const z=zonaDe(x.h.itemId);return `<button class="kbar" ${z?`data-act="irZonaP" data-v="${z.id}"`:""}><span>${esc(x.h.codigo)} · ${esc(x.h.item)}</span><i style="width:${x.n/maxT*100}%;background:var(--amber)"></i><b>${x.n}</b></button>`}).join(""):`<p class="small muted">Ningún componente repite hallazgos.</p>`}</div>
   <div class="panel" style="margin-top:10px"><h3>Inspecciones cerradas por mes</h3><p class="small muted">Incluye todas las inspecciones y check lists.</p>
-    <div class="kmes">${meses.map(m=>`<div><b>${m.n}</b><i style="height:${m.n/maxM*80}%"></i>${m.t}</div>`).join("")}</div></div>
+    <div class="kmes">${meses.map((m,k)=>`<div class="${k===meses.length-1?"hoy":""}"><b>${m.n}</b><i style="height:${m.n/maxM*80}%"></i>${m.t}</div>`).join("")}</div></div>
   <button class="btn block" style="margin-top:14px" data-act="excel">Descargar todo en Excel</button>
   <p class="small muted" style="text-align:center">Hallazgos, inspecciones, resultados, herramientas, caídas y el libro, en hojas separadas.</p>`;
 }
@@ -1198,7 +1252,7 @@ async function exportarPDF(id){
   const ROJO=[191,47,27],ACERO=[52,69,77];
   const cod=x=>x?" - "+x:"";const titulo=i.tipo==="rcco"?(EMP.mensual||"Inspección DROPS").toUpperCase()+" DE CAÍDA DE OBJETOS"+cod(EMP.codMensual):i.tipo==="checklist"?"CHECK LIST DE CAÍDA DE OBJETOS"+cod(EMP.codChecklist):esLista(i.tipo)?LISTAS[i.tipo].t.toUpperCase():"INSPECCIÓN POST-EVENTO DE CAÍDA DE OBJETOS"+cod(EMP.codPost);
   const estadoTxt={bien:"Bien",mal:"Mal",nc:"No corresponde"};
-  const cab=()=>{doc.setFillColor(...ROJO);doc.rect(0,0,W,12,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfTxt(titulo),10,8);
+  const cab=()=>{doc.setFillColor(31,43,49);doc.rect(0,0,W,12,"F");doc.setFillColor(242,179,0);doc.rect(0,12,W,1.2,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfTxt(titulo),10,8);
     doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(pdfTxt((EMP.nombre?EMP.nombre+" · ":"")+eq.nombre),W-10,8,{align:"right"});doc.setTextColor(30)};
   const body=[],meta=[];let cuenta={bien:0,mal:0,nc:0,sin:0};let head,colStyles,fotoCol;
   if(esLista(i.tipo)){const CHECKLIST=preguntas(i);

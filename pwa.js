@@ -9,7 +9,7 @@
   }
   add("link", { rel: "manifest", href: "manifest.webmanifest" });
   add("link", { rel: "apple-touch-icon", href: "icons/apple-touch-icon.png" });
-  add("meta", { name: "theme-color", content: "#1f2a37" });
+  add("meta", { name: "theme-color", content: "#1F2B31" });
   add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
   add("meta", { name: "mobile-web-app-capable", content: "yes" });
   add("meta", { name: "apple-mobile-web-app-title", content: "Libro DROPS" });
