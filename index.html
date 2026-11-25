@@ -517,9 +517,12 @@ const fotoSrc=f=>!f?"":f.asset?"/_blob/"+f.asset:f.data||"";
 /* ============ Estado de interfaz ============ */
 /* ============ Datos de la empresa (configurables) ============ */
 const EKEY="libroDrops.empresa";
-let EMP={nombre:"",mensual:"Inspección DROPS",codMensual:"",codChecklist:"",codPost:""};
+let EMP={frecDias:30,nombre:"",mensual:"Inspección DROPS",codMensual:"",codChecklist:"",codPost:""};
 try{Object.assign(EMP,JSON.parse(localStorage.getItem(EKEY)||"{}"))}catch(e){}
 if(EMP.mensual==="Inspección mensual")EMP.mensual="Inspección DROPS";
+const frecDrops=()=>Math.max(1,parseInt(EMP.frecDias,10)||30);
+const FREC_PRESET={7:"Una vez por semana",15:"Cada 15 días",30:"Una vez por mes",60:"Cada 2 meses",90:"Cada 3 meses"};
+const frecTxt=()=>FREC_PRESET[frecDrops()]||`Cada ${frecDrops()} días`;
 const UI={animZonas:true,todos:false,obsOpen:new Set(),open:new Set(),tab:"equipo",equipo:null,zona:null,insp:null,hfilter:"abiertos",sheet:null,calc:{m:"1",h:"4.56"},inspector:""};
 try{UI.inspector=localStorage.getItem("libroDrops.inspector")||"";UI.equipo=localStorage.getItem("libroDrops.equipo")||null}catch(e){}
 function setEquipo(id){UI.equipo=id;try{localStorage.setItem("libroDrops.equipo",id)}catch(e){}}
@@ -696,7 +699,7 @@ function boot(){if(S.mode==="cargando")return;migrar();abrirDesdeEtiqueta();rend
 function vTodos(){
   const filas=equipos().map(e=>{const lb=libro(e);if(!lb)return"";const hs=hallz(e).filter(h=>h.estado==="abierto");
     const venc=hs.filter(h=>h.fechaLimite&&h.fechaLimite<hoy()).length;
-    const ab=insps(e).find(i=>i.estado==="abierta"&&i.tipo==="rcco");const u=ultimaRCCO(e);const vd=u?30-dias(u.fechaFin,new Date()):null;
+    const ab=insps(e).find(i=>i.estado==="abierta"&&i.tipo==="rcco");const u=ultimaRCCO(e);const vd=u?frecDrops()-dias(u.fechaFin,new Date()):null;
     const est=ab?(()=>{const a=rccoAvance(ab,lb);return `En curso ${a.hechos}/${a.total}`})():u?(vd<0?'<span class="venc">Vencida</span>':`Al día · vence en ${vd} d`):'<span class="venc">Sin hacer</span>';
     const inc=lb.zonas.reduce((a,z)=>a+z.items.filter(fichaIncompleta).length,0),sec=lb.zonas.reduce((a,z)=>a+z.items.filter(sinSec).length,0);
     return `<tr data-act="irEq" data-v="${e.id}" style="cursor:pointer"><td><b>${esc(e.nombre)}</b></td><td>${est}</td><td class="n ${hs.length?"r":""}">${hs.length}</td><td class="n ${venc?"r":""}">${venc}</td><td class="n">${inc}</td><td class="n">${sec}</td></tr>`}).join("");
@@ -719,7 +722,7 @@ function vOnboarding(){
 function vEquipo(eq){
   const lb=libro(eq);if(!lb)return`<div class="loader">Cargando libro…</div>`;
   const hs=hallz(eq),abiertos=hs.filter(h=>h.estado==="abierto");
-  const u=ultimaRCCO(eq);const vence=u?30-dias(u.fechaFin,new Date()):null;
+  const u=ultimaRCCO(eq);const vence=u?frecDrops()-dias(u.fechaFin,new Date()):null;
   const total=lb.zonas.reduce((a,z)=>a+z.items.length,0),inc=lb.zonas.reduce((a,z)=>a+z.items.filter(fichaIncompleta).length,0);
   const abierta=insps(eq).find(i=>i.estado==="abierta");
   const rcco=abierta&&!esLista(abierta.tipo)?abierta:null;const av=rcco?rccoAvance(rcco,lb):null;
@@ -802,7 +805,7 @@ function vInspeccionar(eq){
   ${(()=>{const rs=regs(eq).filter(r=>r.estado==="abierto");return rs.map(r=>`<button class="choice" data-act="sheet" data-v="reg:${r.id}" style="border-left-color:var(--red);margin-top:12px"><h3>Herramientas en altura: ${arriba(r).length} arriba</h3><span class="small muted">${esc(r.tarea||"Sin tarea")} · ${esc(r.persona||"")} · desde ${fmtF(r.creado)}. Tocá para registrar lo que baja.</span></button>`).join("")})()}
   ${S.readOnly?"":`<div style="margin-top:12px">
   <button class="choice" data-act="nuevoReg" style="border-left-color:var(--amber)"><h3>Registro de herramientas en altura</h3><span class="small muted">Anotá lo que sube y tildá lo que baja. Al final confirma que no quedó nada arriba.</span></button>
-  <button class="choice" data-act="nueva" data-v="rcco"><h3>${esc(EMP.mensual||"Inspección DROPS")}</h3><span class="small muted">Una vez por mes. Recorre las ${lb.zonas.length} zonas del libro y cada componente se marca Bien, Mal o No corresponde.</span></button>
+  <button class="choice" data-act="nueva" data-v="rcco"><h3>${esc(EMP.mensual||"Inspección DROPS")}</h3><span class="small muted">${frecTxt()}. Recorre las ${lb.zonas.length} zonas del libro y cada componente se marca Bien, Mal o No corresponde.</span></button>
   ${Object.entries(LISTAS).map(([k,L])=>`<button class="choice" data-act="nueva" data-v="${k}"><h3>${L.t}</h3><span class="small muted">${L.q.length} puntos. ${L.d}</span></button>`).join("")}
   <button class="choice" data-act="sheet" data-v="post"><h3>Inspección post-evento</h3><span class="small muted">Solo las zonas del mástil, después de tijera, martilleo, viento fuerte o un enganche.</span></button>
   </div>`}
@@ -931,7 +934,7 @@ async function exportarExcel(eq){
     "Check lists":insps(eq).filter(i=>esLista(i.tipo)).flatMap(i=>(i.checklist||[]).map((c,k)=>({Lista:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Punto:k+1,Pregunta:(LISTAS[i.tipo]||LISTAS.checklist).q[k]||"",Respuesta:c.r==="si"?"Sí":c.r==="no"?"No":"",Observaciones:E(c.obs)}))),
     "Herramientas":regs(eq).flatMap(r=>(r.items||[]).map(t=>({Fecha:fmtF(r.creado),Tarea:E(r.tarea),Persona:E(r.persona),Herramienta:t.desc,"Peso (kg)":E(t.peso),Amarre:AMARRE[t.amarre]||"",Bajó:t.bajo?"Sí":"No",Registro:r.estado==="cerrado"?"Cerrado":"Abierto"}))),
     "Caídas":caidas(eq).map(c=>({Fecha:fmtF(c.fecha),Zona:E(c.zona),Objeto:E(c.objeto),"Masa (kg)":E(c.masa),"Altura (m)":E(c.altura),Consecuencia:CONS[c.cons]?CONS[c.cons].t:"",Lesionados:c.lesion==="si"?"Sí":"No",Qué_pasó:E(c.desc),Causa:E(c.causa),Lección:E(c.leccion)})),
-    "Libro":lb.zonas.flatMap(z=>z.items.map(it=>({Código:codigo(eq,z,it),Zona:z.nombre,Acceso:z.acceso==="roja"?"Zona roja":z.acceso==="verde"?"Zona verde":"",Componente:it.desc,Riesgo:RIESGO_TXT[it.riesgo||""],"Fijación primaria":E(it.primaria),"Retención secundaria":E(it.secundaria),"Aseguramiento de seguridad":E(it.seguridad),"Qué verificar":E(it.criterio),Frecuencia:FREC[it.frec]?FREC[it.frec].t:"Mensual",Temporario:it.temp==="si"?("Sí"+(it.retiro?", retirar el "+fmtF(it.retiro):"")):""})))
+    "Libro":lb.zonas.flatMap(z=>z.items.map(it=>({Código:codigo(eq,z,it),Zona:z.nombre,Acceso:z.acceso==="roja"?"Zona roja":z.acceso==="verde"?"Zona verde":"",Componente:it.desc,Riesgo:RIESGO_TXT[it.riesgo||""],"Fijación primaria":E(it.primaria),"Retención secundaria":E(it.secundaria),"Aseguramiento de seguridad":E(it.seguridad),"Qué verificar":E(it.criterio),Frecuencia:FREC[it.frec]?FREC[it.frec].t:"Con la inspección DROPS",Temporario:it.temp==="si"?("Sí"+(it.retiro?", retirar el "+fmtF(it.retiro):"")):""})))
   };
   const wb=XLSX.utils.book_new();
   Object.entries(hojas).forEach(([n,rows])=>{const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Sin_datos:""}]);
@@ -947,7 +950,7 @@ function vCapacitar(eq){return vCalc()}
 function vPanel(eq){
   const lb=libro(eq);if(!lb)return`<div class="loader">Cargando libro…</div>`;
   const hs=hallz(eq),ab=hs.filter(h=>h.estado==="abierto"),venc=ab.filter(h=>h.fechaLimite&&h.fechaLimite<hoy());
-  const u=ultimaRCCO(eq),vence=u?30-dias(u.fechaFin,new Date()):null;
+  const u=ultimaRCCO(eq),vence=u?frecDrops()-dias(u.fechaFin,new Date()):null;
   const enCurso=insps(eq).find(i=>i.estado==="abierta"&&i.tipo==="rcco");
   const sec=[];lb.zonas.forEach(z=>z.items.forEach(it=>{if(sinSec(it))sec.push(z)}));
   const cer=hs.filter(h=>h.estado==="cerrado"&&h.cierre&&h.cierre.fecha);
@@ -1099,6 +1102,9 @@ function vSheet(eq){
   if(s==="empresa")return `<h2>Datos de la empresa</h2><p class="small muted">Se usan en los encabezados y en los PDF. Dejá vacío lo que no uses.</p>
     <label class="f" for="emN">Nombre de la empresa</label><input class="t" id="emN" value="${esc(EMP.nombre)}" autocomplete="off">
     <label class="f" for="emM">Nombre de la inspección DROPS</label><input class="t" id="emM" value="${esc(EMP.mensual)}" autocomplete="off">
+    <label class="f" for="emF">Frecuencia de la inspección DROPS</label><select class="t" id="emF">${Object.entries(FREC_PRESET).map(([k,t])=>`<option value="${k}" ${+k===frecDrops()?"selected":""}>${t}</option>`).join("")}<option value="otra" ${FREC_PRESET[frecDrops()]?"":"selected"}>Otra</option></select>
+    <label class="f" for="emFd">Si elegiste Otra: cada cuántos días</label><input class="t" id="emFd" inputmode="numeric" value="${FREC_PRESET[frecDrops()]?"":frecDrops()}" placeholder="Ej.: 45" autocomplete="off">
+    <p class="small muted">No hay un marco obligatorio: cada empresa define cada cuánto se hace.</p>
     <label class="f" for="emC1">Código del formulario mensual</label><input class="t" id="emC1" value="${esc(EMP.codMensual)}" placeholder="Opcional" autocomplete="off">
     <label class="f" for="emC2">Código del check list</label><input class="t" id="emC2" value="${esc(EMP.codChecklist)}" placeholder="Opcional" autocomplete="off">
     <label class="f" for="emC3">Código de la inspección post-evento</label><input class="t" id="emC3" value="${esc(EMP.codPost)}" placeholder="Opcional" autocomplete="off">
@@ -1146,7 +1152,7 @@ function vSheet(eq){
     ${fld("criterio","Qué verificar en la inspección","")}
     <label class="f" for="d_comp">Componente del equipo (peligros y controles)</label><select class="t" id="d_comp" data-draft="comp"><option value="">Sin asociar</option>${Object.entries(COMPONENTES).map(([k,c])=>`<option value="${k}" ${d.comp===k?"selected":""}>${esc(c.name)}</option>`).join("")}</select>
     <label class="f" for="d_riesgo">Clasificación según riesgo</label><select class="t" id="d_riesgo" data-draft="riesgo">${["alto","medio","bajo",""].map(k=>`<option value="${k}" ${d.riesgo===k?"selected":""}>${RIESGO_TXT[k]}</option>`).join("")}</select>
-    <label class="f" for="d_frec">Frecuencia de control</label><select class="t" id="d_frec" data-draft="frec">${[["","Mensual (con la inspección DROPS)"],["semanal","Semanal"],["diaria","Diaria"]].map(([k,t])=>`<option value="${k}" ${(d.frec||"")===k?"selected":""}>${t}</option>`).join("")}</select>
+    <label class="f" for="d_frec">Frecuencia de control</label><select class="t" id="d_frec" data-draft="frec">${[["","Con la inspección DROPS"],["semanal","Semanal"],["diaria","Diaria"]].map(([k,t])=>`<option value="${k}" ${(d.frec||"")===k?"selected":""}>${t}</option>`).join("")}</select>
     <div class="row" style="gap:10px"><div style="flex:1"><label class="f" for="d_temp">¿Equipo temporario?</label><select class="t" id="d_temp" data-draft="temp"><option value="">No</option><option value="si" ${d.temp==="si"?"selected":""}>Sí, se retira después</option></select></div>
       <div style="flex:1"><label class="f" for="d_ret">Fecha de retiro</label><input class="t" type="date" id="d_ret" data-draft="retiro" value="${esc(d.retiro||"")}"></div></div>
     <div class="row" style="gap:10px"><div style="flex:1"><label class="f" for="d_masa">Masa aprox. (kg)</label><input class="t" id="d_masa" inputmode="decimal" data-draft="masa" value="${esc(d.masa)}"></div>
@@ -1527,7 +1533,7 @@ document.addEventListener("click",e=>{
     case"qr":etiquetasQR(eq,v);return;
     case"irCodigo":{const c=($("#buscaCod").value||"").trim().toUpperCase();if(!c)return;const lb=libro(eq);let zz=null,ii=null;lb.zonas.forEach(z=>z.items.forEach(it=>{if(codigo(eq,z,it).toUpperCase()===c){zz=z;ii=it}}));
       if(!zz){toast("No hay ningún componente con el código "+c+".");return}UI.zona=zz.id;UI.irItem=ii.id;break}
-    case"guardarEmpresa":{const g=id=>($(id).value||"").trim();EMP={nombre:g("#emN"),mensual:g("#emM")||"Inspección DROPS",codMensual:g("#emC1"),codChecklist:g("#emC2"),codPost:g("#emC3"),url:g("#emU"),inspectores:g("#emI").split("\n").map(l=>l.split(";")).map(([n,v])=>({n:(n||"").trim(),vence:(v||"").trim()})).filter(p=>p.n)};try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(e){}UI.sheet=null;toast("Datos de la empresa guardados.");break}
+    case"guardarEmpresa":{const g=id=>($(id).value||"").trim();EMP={frecDias:($("#emF").value==="otra"?parseInt(g("#emFd"),10):parseInt($("#emF").value,10))||30,nombre:g("#emN"),mensual:g("#emM")||"Inspección DROPS",codMensual:g("#emC1"),codChecklist:g("#emC2"),codPost:g("#emC3"),url:g("#emU"),inspectores:g("#emI").split("\n").map(l=>l.split(";")).map(([n,v])=>({n:(n||"").trim(),vence:(v||"").trim()})).filter(p=>p.n)};try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(e){}UI.sheet=null;toast("Datos de la empresa guardados.");break}
     case"renombrar":{const n=($("#rnEq").value||"").trim();if(!n)return;eq.nombre=n;put("equipos",eq);UI.sheet=null;toast("Nombre guardado.");break}
     case"borrarEquipo":if(!confirm(`¿Borrar ${eq.nombre} con su libro, inspecciones y hallazgos? No se puede deshacer.`))return;
       insps(eq).forEach(i=>del("inspecciones",i.id));hallz(eq).forEach(h=>del("hallazgos",h.id));del("libros",eq.id);del("equipos",eq.id);UI.sheet=null;UI.equipo=null;break;
