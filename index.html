@@ -539,6 +539,7 @@ const refDe=it=>it&&it.pid&&REF_PUNTOS[it.pid]&&!it.propio?REF_PUNTOS[it.pid]:nu
 const refsDe=it=>it&&it.pid?REFERENCIAS.filter(x=>x.p.includes(it.pid)):[];
 function migrar(){
   if(S.readOnly)return;
+  Object.values(S.data.charlas||{}).forEach(c=>{if(c.estado==="abierta"&&!c.texto&&!(c.asistentes||[]).length)del("charlas",c.id)});
   Object.values(S.data.libros).forEach(lb=>{
     let cambio=false;const mapa={};
     lb.zonas.forEach(z=>{if(COD_VIEJO[z.cod]){z.cod=COD_VIEJO[z.cod];cambio=true}
@@ -966,21 +967,25 @@ const TEMAS=[
  {t:"Planificar antes de subir",f:"DROPS · Planificación y charla previa",x:"La mayoría de las caídas se evitan antes de empezar. DROPS pide planificar el trabajo en altura: qué sube, qué puede caer y quién queda debajo.",ej:{o:"Una llave de 2 kg",m:2,h:10},a:["Hacemos el ATS antes del trabajo en altura.","Definimos qué herramientas suben y cómo se atan.","Despejamos y delimitamos el área de abajo."],q:"¿Qué trabajo en altura tenemos hoy y qué puede caer?"}
 ];
 const temaDelDia=()=>{const d=new Date();return Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%TEMAS.length};
-function textoCharla(idx){const T=TEMAS[idx];const k=consecuencia(T.ej.m,T.ej.h);
+function textoCharla(idx){const T=TEMAS[idx]||TEMAS[0];const k=consecuencia(T.ej.m,T.ej.h);
   return [T.x,`¿Por qué importa? ${T.ej.o} que cae desde ${T.ej.h} m llega al piso con ${Math.round(k.e)} J de energía: la consecuencia potencial es ${CONS[k.c].t.toLowerCase()}.`,
    `¿Qué hacemos hoy? ${T.a.join(" ")}`,`Para el grupo: ${T.q} Y además, ¿qué vieron hoy que pueda caer? Si aparece algo, lo anotamos como hallazgo.`]}
 const charlas=eq=>Object.values(S.data.charlas).filter(c=>eq&&c.equipoId===eq.id).sort((a,b)=>(b.creado||"").localeCompare(a.creado||""));
 function vCharla(eq){
   const ab=charlas(eq).find(c=>c.estado==="abierta");
-  const idx=ab?ab.idx:(UI.chTema===undefined?temaDelDia():UI.chTema);const T=TEMAS[idx]||TEMAS[0];const texto=ab&&ab.texto?ab.texto:textoCharla(idx);
+  // Compatible con charlas abiertas guardadas por versiones anteriores (sin idx ni texto).
+  const idx=ab?(ab.idx!==undefined?ab.idx:Math.max(0,TEMAS.findIndex(x=>x.t===ab.tema))):(UI.chTema===undefined?temaDelDia():UI.chTema);
+  const T=TEMAS[idx]||TEMAS[0];
+  const texto=ab?(ab.texto||(ab.secciones||[]).map(sc=>[sc.t,sc.x,...(sc.l||[])].filter(Boolean).join(": "))):textoCharla(idx);
+  const titulo=ab?(ab.tema||T.t):T.t,fuente=ab?(ab.fuente||(ab.texto?T.f:"")):T.f;
   const hist=charlas(eq).filter(c=>c.estado==="cerrada");
   const prev=[...new Set(charlas(eq).flatMap(c=>c.asistentes.map(a=>a.n)))].filter(n=>!(ab&&ab.asistentes.some(a=>a.n===n))).slice(0,12);
   const d=draft&&draft.charlaForm?draft:(draft={charlaForm:true,nombre:"",firmaAs:null});
   const as=ab?ab.asistentes:[];const dicto=ab?ab.dicto||"":(UI.chDicto??UI.inspector??"");
   return `<h1>Charla de 5 minutos</h1><p class="small muted">Para leer en voz alta antes de empezar las tareas.</p>
-  <h2 style="margin-top:14px">${esc(T.t)}</h2>
+  <h2 style="margin-top:14px">${esc(titulo)}</h2>
   ${texto.map(x=>`<p style="font-size:1.05rem;line-height:1.55;margin:0 0 10px">${esc(x)}</p>`).join("")}
-  <p class="small muted">Fuente: ${esc(T.f)} (DROPS Forum).${ab?"":` <button class="link small" data-act="chTema" data-v="${(idx+1)%TEMAS.length}">Cambiar por otro tema</button>`}</p>
+  <p class="small muted">${fuente?`Fuente: ${esc(fuente)} (DROPS Forum).`:""}${ab?"":` <button class="link small" data-act="chTema" data-v="${(idx+1)%TEMAS.length}">Cambiar por otro tema</button>`}</p>
   ${S.readOnly?"":`<h2 style="margin-top:18px">Asistentes</h2>
   ${as.length?as.map((a,j)=>`<div class="row between" style="border-top:1px solid var(--line);padding:6px 0"><b>${esc(a.n)}</b><span class="row" style="gap:8px">${a.firma?`<img src="${a.firma}" alt="Firma de ${esc(a.n)}" style="height:34px;background:#fff;border-radius:4px">`:""}<button class="link small" data-act="quitarAs" data-v="${j}">Quitar</button></span></div>`).join(""):`<p class="small muted">Cada asistente escribe su nombre y firma.</p>`}
   ${prev.length?`<div class="row wrapflex" style="gap:6px;margin:6px 0">${prev.map(n=>`<button class="chip" style="border:1px solid var(--line);cursor:pointer" data-act="asRapido" data-v="${esc(n)}">${esc(n)}</button>`).join("")}</div>`:""}
