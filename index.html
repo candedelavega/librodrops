@@ -1023,45 +1023,33 @@ const TEMAS=[
  {t:"Planificar antes de subir",f:"DROPS · Planificación y charla previa",x:"La mayoría de las caídas se evitan antes de empezar. DROPS pide planificar el trabajo en altura: qué sube, qué puede caer y quién queda debajo.",ej:{o:"Una llave de 2 kg",m:2,h:10},a:["Hacemos el ATS antes del trabajo en altura.","Definimos qué herramientas suben y cómo se atan.","Despejamos y delimitamos el área de abajo."],q:"¿Qué trabajo en altura tenemos hoy y qué puede caer?"}
 ];
 const temaDelDia=()=>{const d=new Date();return Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%TEMAS.length};
-function armarCharla(idx){
-  const T=TEMAS[idx];const k=consecuencia(T.ej.m,T.ej.h);
-  return [
-   {t:T.t,x:T.x,l:[],f:T.f},
-   {t:"Por qué importa",x:`${T.ej.o} que cae desde ${T.ej.h} m llega al piso con ${Math.round(k.e)} J de energía. Consecuencia potencial: ${CONS[k.c].t.toLowerCase()}.`,l:[]},
-   {t:"Qué hacemos",x:"",l:T.a},
-   {t:"Pregunta para el grupo",x:T.q+" Y además: ¿qué vieron hoy que pueda caer? Si aparece algo, se anota como hallazgo.",l:[]}
-  ];
-}
+function textoCharla(idx){const T=TEMAS[idx];const k=consecuencia(T.ej.m,T.ej.h);
+  return [T.x,`¿Por qué importa? ${T.ej.o} que cae desde ${T.ej.h} m llega al piso con ${Math.round(k.e)} J de energía: la consecuencia potencial es ${CONS[k.c].t.toLowerCase()}.`,
+   `¿Qué hacemos hoy? ${T.a.join(" ")}`,`Para el grupo: ${T.q} Y además, ¿qué vieron hoy que pueda caer? Si aparece algo, lo anotamos como hallazgo.`]}
 const charlas=eq=>Object.values(S.data.charlas).filter(c=>eq&&c.equipoId===eq.id).sort((a,b)=>(b.creado||"").localeCompare(a.creado||""));
 function vCharla(eq){
   const ab=charlas(eq).find(c=>c.estado==="abierta");
-  if(!ab){const hist=charlas(eq).filter(c=>c.estado==="cerrada");
-    const sel=UI.chTema===undefined?temaDelDia():UI.chTema;const T=TEMAS[sel];
-    return `<h1>Charla de 5 minutos</h1><p class="small muted">Se arma sola con las buenas prácticas DROPS, para que el profesional de HSE o el jefe de equipo la lea antes de empezar las tareas. Al final firman los asistentes.</p>
-    <div class="chcard" style="border-left-color:var(--red);min-height:0;margin-top:12px"><span class="small muted">Charla de hoy</span><h2>${esc(T.t)}</h2><p class="small muted" style="margin:0">${esc(T.f)} · 4 tarjetas · menos de 5 min</p></div>
-    ${S.readOnly?"":`<button class="btn primary block" style="margin-top:10px" data-act="nuevaCharla">Empezar la charla</button>
-    <button class="link small" data-act="chTema" data-v="${(sel+1)%TEMAS.length}">Cambiar por otro tema</button>`}
-    <h2 style="margin-top:20px">Charlas dadas</h2>
-    ${hist.length?hist.map(c=>`<div class="item"><div class="row between wrapflex"><h3>${esc(c.tema)}</h3><span class="chip">${c.asistentes.length} ${c.asistentes.length===1?"asistente":"asistentes"}</span></div><p class="small muted">${fmtF(c.creado)} · dictó ${esc(c.dicto||"—")}</p><button class="btn ghost" data-act="pdfCharla" data-v="${c.id}">Constancia en PDF</button></div>`).join(""):`<p class="muted">Todavía no hay charlas registradas.</p>`}`}
-  const k=Math.min(UI.chK||0,ab.secciones.length);const N=ab.secciones.length;
-  const head=`<div class="row between"><button class="link" data-act="salirCharla">‹ Salir</button><span class="small muted">⏱ <b id="chTime" data-v="${ab.id}">0:00</b> / 5:00</span></div>
-  <div class="chdots">${Array.from({length:N+1},(_,j)=>`<i class="${j===k?"on":""}"></i>`).join("")}</div>`;
-  if(k<N){const sc=ab.secciones[k];
-    return head+`<div class="chcard" style="border-left-color:var(--${k===0?"red":k===N-1?"green":"amber"})"><span class="small muted">${k+1} de ${N}${k===0?" · leé en voz alta":""}</span><h2>${esc(sc.t)}</h2><p>${esc(sc.x)}</p>${sc.l.length?`<ul>${sc.l.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${sc.f?`<p class="small muted" style="margin-top:10px">Fuente: ${esc(sc.f)} (DROPS Forum)</p>`:""}</div>
-    <div class="row" style="gap:8px;margin-top:12px">${k?`<button class="btn ghost" style="flex:1" data-act="chPaso" data-v="-1">Anterior</button>`:""}<button class="btn primary" style="flex:2" data-act="chPaso" data-v="1">${k===N-1?"Ir a las firmas":"Siguiente"}</button></div>`}
-  const prev=[...new Set(charlas(eq).flatMap(c=>c.asistentes.map(a=>a.n)))].filter(n=>!ab.asistentes.some(a=>a.n===n)).slice(0,12);
-  const d=draft&&draft.charla===ab.id?draft:(draft={charla:ab.id,nombre:"",firmaAs:null});
-  return head+`<h2>Asistentes</h2>
-  ${ab.asistentes.length?ab.asistentes.map((a,j)=>`<div class="row between" style="border-top:1px solid var(--line);padding:6px 0"><span><b>${esc(a.n)}</b></span><span class="row" style="gap:8px">${a.firma?`<img src="${a.firma}" alt="Firma de ${esc(a.n)}" style="height:34px;background:#fff;border-radius:4px">`:""}<button class="link small" data-act="quitarAs" data-v="${j}">Quitar</button></span></div>`).join(""):`<p class="small muted">Cada asistente escribe su nombre y firma.</p>`}
-  <div class="panel" style="margin-top:10px">
-    ${prev.length?`<div class="row wrapflex" style="gap:6px;margin-bottom:6px">${prev.map(n=>`<button class="chip" style="border:1px solid var(--line);cursor:pointer" data-act="asRapido" data-v="${esc(n)}">${esc(n)}</button>`).join("")}</div>`:""}
-    <label class="f" for="asN">Nombre</label><input class="t" id="asN" data-draft="nombre" value="${esc(d.nombre)}" autocomplete="off">
-    <label class="f">Firma</label><canvas class="firma" id="firmaAs" aria-label="Recuadro para firmar"></canvas>
-    <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:2" data-act="addAs">+ Agregar asistente</button><button class="btn ghost" style="flex:1" data-act="limpiarAs">Borrar firma</button></div></div>
-  <label class="f" for="chD">Dictó la charla (profesional de HSE o jefe de equipo)</label><input class="t" id="chD" data-chd="1" value="${esc(ab.dicto||"")}" placeholder="Nombre">
-  <button class="btn primary block" style="margin-top:14px" data-act="cerrarCharla" ${ab.asistentes.length&&(ab.dicto||"").trim()?"":"disabled"}>Cerrar y registrar charla</button>
-  <p class="small muted" style="text-align:center">${!ab.asistentes.length?"Agregá al menos un asistente para cerrar.":!(ab.dicto||"").trim()?"Completá quién dictó la charla.":"Queda registrada con fecha, tema, quién dictó y firmas."}</p>
-  <button class="link small" data-act="chPaso" data-v="-1">‹ Volver a los temas</button> · <button class="link small" data-act="borrarCharla" data-v="${ab.id}">Borrar charla</button>`;
+  const idx=ab?ab.idx:(UI.chTema===undefined?temaDelDia():UI.chTema);const T=TEMAS[idx]||TEMAS[0];const texto=ab&&ab.texto?ab.texto:textoCharla(idx);
+  const hist=charlas(eq).filter(c=>c.estado==="cerrada");
+  const prev=[...new Set(charlas(eq).flatMap(c=>c.asistentes.map(a=>a.n)))].filter(n=>!(ab&&ab.asistentes.some(a=>a.n===n))).slice(0,12);
+  const d=draft&&draft.charlaForm?draft:(draft={charlaForm:true,nombre:"",firmaAs:null});
+  const as=ab?ab.asistentes:[];const dicto=ab?ab.dicto||"":(UI.chDicto??UI.inspector??"");
+  return `<h1>Charla de 5 minutos</h1><p class="small muted">Para leer en voz alta antes de empezar las tareas.</p>
+  <h2 style="margin-top:14px">${esc(T.t)}</h2>
+  ${texto.map(x=>`<p style="font-size:1.05rem;line-height:1.55;margin:0 0 10px">${esc(x)}</p>`).join("")}
+  <p class="small muted">Fuente: ${esc(T.f)} (DROPS Forum).${ab?"":` <button class="link small" data-act="chTema" data-v="${(idx+1)%TEMAS.length}">Cambiar por otro tema</button>`}</p>
+  ${S.readOnly?"":`<h2 style="margin-top:18px">Asistentes</h2>
+  ${as.length?as.map((a,j)=>`<div class="row between" style="border-top:1px solid var(--line);padding:6px 0"><b>${esc(a.n)}</b><span class="row" style="gap:8px">${a.firma?`<img src="${a.firma}" alt="Firma de ${esc(a.n)}" style="height:34px;background:#fff;border-radius:4px">`:""}<button class="link small" data-act="quitarAs" data-v="${j}">Quitar</button></span></div>`).join(""):`<p class="small muted">Cada asistente escribe su nombre y firma.</p>`}
+  ${prev.length?`<div class="row wrapflex" style="gap:6px;margin:6px 0">${prev.map(n=>`<button class="chip" style="border:1px solid var(--line);cursor:pointer" data-act="asRapido" data-v="${esc(n)}">${esc(n)}</button>`).join("")}</div>`:""}
+  <label class="f" for="asN">Nombre</label><input class="t" id="asN" data-draft="nombre" value="${esc(d.nombre)}" autocomplete="off">
+  <label class="f">Firma</label><canvas class="firma" id="firmaAs" aria-label="Recuadro para firmar"></canvas>
+  <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:2" data-act="addAs" data-v="${idx}">+ Agregar asistente</button><button class="btn ghost" style="flex:1" data-act="limpiarAs">Borrar firma</button></div>
+  <label class="f" for="chD">Dictó la charla (profesional de HSE o jefe de equipo)</label><input class="t" id="chD" data-chd="1" value="${esc(dicto)}" placeholder="Nombre">
+  <button class="btn primary block" style="margin-top:14px" data-act="cerrarCharla" ${as.length&&dicto.trim()?"":"disabled"}>Cerrar y registrar charla</button>
+  <p class="small muted" style="text-align:center">${!as.length?"Agregá al menos un asistente para cerrar.":!dicto.trim()?"Completá quién dictó la charla.":"Queda registrada con fecha, tema, quién dictó y firmas."}</p>
+  ${ab?`<button class="link small" data-act="borrarCharla" data-v="${ab.id}">Descartar esta charla</button>`:""}`}
+  <h2 style="margin-top:22px">Charlas dadas</h2>
+  ${hist.length?hist.map(c=>`<div class="row between wrapflex" style="border-top:1px solid var(--line);padding:8px 0"><span><b>${esc(c.tema)}</b><br><span class="small muted">${fmtF(c.creado)} · ${c.asistentes.length} ${c.asistentes.length===1?"asistente":"asistentes"} · dictó ${esc(c.dicto||"—")}</span></span><button class="link small" data-act="pdfCharla" data-v="${c.id}">PDF</button></div>`).join(""):`<p class="muted">Todavía no hay charlas registradas.</p>`}`;
 }
 async function pdfCharla(id){
   const c=S.data.charlas[id];const eq=S.data.equipos[c.equipoId];if(!c||!eq)return;
@@ -1071,8 +1059,8 @@ async function pdfCharla(id){
   doc.setFillColor(191,47,27);doc.rect(0,0,W,12,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfTxt("CHARLA DE SEGURIDAD - PREVENCIÓN DE CAÍDA DE OBJETOS"),10,8);
   doc.setTextColor(30);doc.setFontSize(10);y=20;
   doc.setFont("helvetica","normal");doc.text(pdfTxt(`${EMP.nombre?EMP.nombre+" · ":""}Equipo: ${eq.nombre}   Fecha: ${fmtF(c.creado)}   Duración: ${c.min||"-"} min   Dictó: ${c.dicto||"-"}`),10,y);y+=8;
-  doc.setFont("helvetica","bold");doc.text(pdfTxt("Tema: "+c.tema+(c.secciones[0].f?"   (Fuente: "+c.secciones[0].f+", DROPS Forum)":"")),10,y);y+=6;doc.text("Contenido",10,y);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(9);
-  c.secciones.forEach((sc,j)=>{const lines=doc.splitTextToSize(pdfTxt(`${j+1}. ${sc.t}: ${[sc.x,...sc.l].filter(Boolean).join(" ")}`),W-20);doc.text(lines,10,y);y+=lines.length*4.2+2});
+  doc.setFont("helvetica","bold");doc.text(pdfTxt("Tema: "+c.tema+(c.fuente?"   (Fuente: "+c.fuente+", DROPS Forum)":"")),10,y);y+=6;doc.text("Contenido",10,y);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(9);
+  (c.texto||c.secciones.map(sc=>`${sc.t}: ${[sc.x,...sc.l].filter(Boolean).join(" ")}`)).forEach(x=>{const lines=doc.splitTextToSize(pdfTxt(x),W-20);doc.text(lines,10,y);y+=lines.length*4.2+2});
   y+=4;doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Asistentes",10,y);y+=3;
   doc.autoTable({startY:y,head:[["#","Nombre","Firma"]],body:c.asistentes.map((a,j)=>[String(j+1),pdfTxt(a.n),""]),theme:"grid",headStyles:{fillColor:[52,69,77]},styles:{fontSize:9,minCellHeight:14,valign:"middle"},columnStyles:{0:{cellWidth:10},1:{cellWidth:90},2:{cellWidth:"auto"}},
     didDrawCell:dd=>{if(dd.section==="body"&&dd.column.index===2){const a=c.asistentes[dd.row.index];if(a&&a.firma){try{doc.addImage(a.firma,"PNG",dd.cell.x+2,dd.cell.y+1,36,12)}catch(e){}}}}});
@@ -1651,18 +1639,17 @@ document.addEventListener("click",e=>{
     case"irCharla":UI.todos=false;UI.tab="calc";UI.capTab="charla";window.scrollTo(0,0);break;
     case"barTog":UI.bar[v]=!UI.bar[v];UI.bar.n=0;break;
     case"barRun":UI.bar.n++;break;
-    case"chTema":UI.chTema=+v;break;
-    case"nuevaCharla":{const ix=UI.chTema===undefined?temaDelDia():UI.chTema;const c={id:uid(),equipoId:eq.id,secciones:armarCharla(ix),asistentes:[],dicto:UI.inspector||"",estado:"abierta",creado:new Date().toISOString()};c.tema=TEMAS[ix].t;put("charlas",c);UI.chK=0;draft=null;window.scrollTo(0,0);break}
-    case"chPaso":{const ab=charlas(eq).find(c=>c.estado==="abierta");if(!ab)break;UI.chK=Math.max(0,Math.min(ab.secciones.length,(UI.chK||0)+(+v)));window.scrollTo(0,0);break}
-    case"salirCharla":UI.chK=0;UI.capTab="charla";{const ab=charlas(eq).find(c=>c.estado==="abierta");if(ab&&!ab.asistentes.length&&confirm("¿Descartar la charla sin asistentes?"))del("charlas",ab.id)}draft=null;break;
+    case"chTema":UI.chTema=+v;draft=null;break;
     case"asRapido":if(draft){draft.nombre=v}break;
     case"limpiarAs":if(draft)draft.firmaAs=null;break;
-    case"addAs":{const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));const n=(draft&&draft.nombre||"").trim();if(!n){toast("Escribí el nombre del asistente.");return}
-      if(!draft.firmaAs){toast("Falta la firma de "+n+".");return}if(ab.asistentes.some(a=>a.n.toLowerCase()===n.toLowerCase())){toast(n+" ya está en la lista.");return}
-      ab.asistentes.push({n,firma:draft.firmaAs});put("charlas",ab);draft={charla:ab.id,nombre:"",firmaAs:null};toast(n+" agregado.");break}
+    case"addAs":{const n=(draft&&draft.nombre||"").trim();if(!n){toast("Escribí el nombre del asistente.");return}if(!draft.firmaAs){toast("Falta la firma de "+n+".");return}
+      let ab=charlas(eq).find(c=>c.estado==="abierta");
+      if(!ab){const ix=+v;const T=TEMAS[ix];ab={id:uid(),equipoId:eq.id,idx:ix,tema:T.t,fuente:T.f,texto:textoCharla(ix),secciones:[],asistentes:[],dicto:UI.chDicto??UI.inspector??"",estado:"abierta",creado:new Date().toISOString()}}else ab=clone(ab);
+      if(ab.asistentes.some(a=>a.n.toLowerCase()===n.toLowerCase())){toast(n+" ya está en la lista.");return}
+      ab.asistentes.push({n,firma:draft.firmaAs});put("charlas",ab);draft={charlaForm:true,nombre:"",firmaAs:null};toast(n+" agregado.");break}
     case"quitarAs":{const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.asistentes.splice(+v,1);put("charlas",ab);break}
-    case"cerrarCharla":{if(t.disabled)return;const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.estado="cerrada";ab.cierre=new Date().toISOString();ab.min=Math.max(1,Math.round((Date.now()-new Date(ab.creado))/60000));put("charlas",ab);UI.chK=0;draft=null;sello("Charla registrada");break}
-    case"borrarCharla":{if(!confirm("¿Borrar esta charla?"))return;del("charlas",v);UI.chK=0;draft=null;break}
+    case"cerrarCharla":{if(t.disabled)return;const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.estado="cerrada";ab.cierre=new Date().toISOString();ab.min=Math.max(1,Math.round((Date.now()-new Date(ab.creado))/60000));put("charlas",ab);UI.chDicto=undefined;UI.chTema=undefined;draft=null;sello("Charla registrada");break}
+    case"borrarCharla":{if(!confirm("¿Descartar esta charla?"))return;del("charlas",v);draft=null;break}
     case"pdfCharla":pdfCharla(v);return;
     case"setAcceso":{const lb=clone(libro(eq));const z=lb.zonas.find(x=>x.id===t.dataset.z);const aut=($("#zAut")||{}).value||"";z.acceso=v;z.autoriza=aut.trim();guardarLibro(lb);break}
     case"guardarAcceso":{const lb=clone(libro(eq));const z=lb.zonas.find(x=>x.id===t.dataset.z);z.autoriza=(($("#zAut")||{}).value||"").trim();guardarLibro(lb);UI.sheet=null;toast("Acceso guardado.");break}
@@ -1732,7 +1719,7 @@ document.addEventListener("input",e=>{
   else if(ds.obs&&insp){const r=insp.resultados[ds.obs]||(insp.resultados[ds.obs]={});const was=!!(r.obs||"").trim();r.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
   else if(ds.resp&&insp){(insp.resultados[ds.resp]||(insp.resultados[ds.resp]={})).responsable=el.value;put("inspecciones",insp,900)}
   else if(ds.ckobs&&insp){const c=insp.checklist[+ds.ckobs];const was=!!(c.obs||"").trim();c.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
-  else if(ds.chd){const ab=charlas(eqAct()).find(c=>c.estado==="abierta");if(ab){const was=!!(ab.dicto||"").trim();ab.dicto=el.value;put("charlas",ab,900);if(was!==!!el.value.trim())render()}}
+  else if(ds.chd){const ab=charlas(eqAct()).find(c=>c.estado==="abierta");const was=!!((ab?ab.dicto:UI.chDicto)||"").trim();if(ab){ab.dicto=el.value;put("charlas",ab,900)}else UI.chDicto=el.value;if(was!==!!el.value.trim())render()}
   else if(ds.reg&&UI.sheet&&UI.sheet.startsWith("reg:")){const r=S.data.registros[UI.sheet.slice(4)];if(r){r[ds.reg]=el.value;put("registros",r,900)}}
   else if(ds.draft&&draft){draft[ds.draft]=el.value;if(ds.draft==="masa"||ds.draft==="altura")render()}
   else if(ds.calc){UI.calc[ds.calc]=el.value;render()}
