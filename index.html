@@ -148,11 +148,6 @@ main a{color:var(--steel);font-weight:600}
 .kmes i{display:block;width:70%;background:var(--steel);border-radius:4px 4px 0 0;min-height:2px}
 .kmes b{color:var(--ink);font-family:var(--display);font-size:.95rem}
 .flash{animation:flash 2.4s ease-out}
-.chcard{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--steel);border-radius:8px;padding:16px;min-height:200px;animation:chentra .35s ease-out}
-.chcard h2{margin:0 0 8px}.chcard p,.chcard li{font-size:1.02rem;line-height:1.45}
-@keyframes chentra{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
-.chdots{display:flex;gap:6px;justify-content:center;margin:10px 0}.chdots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.chdots i.on{background:var(--ink)}
-@media (prefers-reduced-motion:reduce){.chcard{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
 
 /* Hallazgos */
@@ -431,8 +426,8 @@ const clone=o=>JSON.parse(JSON.stringify(o));
 function toast(msg){const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ Almacenamiento ============ */
-const COLS=["equipos","libros","inspecciones","hallazgos","registros","caidas","charlas"];
-const S={mode:"cargando",db:null,assets:null,downloads:null,readOnly:false,data:{equipos:{},libros:{},inspecciones:{},hallazgos:{},registros:{},caidas:{},charlas:{}}};
+const COLS=["equipos","libros","inspecciones","hallazgos","registros","caidas"];
+const S={mode:"cargando",db:null,assets:null,downloads:null,readOnly:false,data:{equipos:{},libros:{},inspecciones:{},hallazgos:{},registros:{},caidas:{}}};
 const LKEY="libroDrops.v1";
 const timers={},inflight={},queued={};
 function localSave(){if(S.mode!=="local")return;try{localStorage.setItem(LKEY,JSON.stringify(S.data))}catch(e){toast("No hay más espacio en este navegador. Borrá fotos o usá la versión publicada.")}}
@@ -539,7 +534,6 @@ const refDe=it=>it&&it.pid&&REF_PUNTOS[it.pid]&&!it.propio?REF_PUNTOS[it.pid]:nu
 const refsDe=it=>it&&it.pid?REFERENCIAS.filter(x=>x.p.includes(it.pid)):[];
 function migrar(){
   if(S.readOnly)return;
-  Object.values(S.data.charlas||{}).forEach(c=>{if(c.estado==="abierta"&&!c.texto&&!(c.asistentes||[]).length)del("charlas",c.id)});
   Object.values(S.data.libros).forEach(lb=>{
     let cambio=false;const mapa={};
     lb.zonas.forEach(z=>{if(COD_VIEJO[z.cod]){z.cod=COD_VIEJO[z.cod];cambio=true}
@@ -936,7 +930,6 @@ async function exportarExcel(eq){
     "Check lists":insps(eq).filter(i=>esLista(i.tipo)).flatMap(i=>(i.checklist||[]).map((c,k)=>({Lista:TIPO_TXT[i.tipo],Fecha:fmtF(i.fecha),Punto:k+1,Pregunta:(LISTAS[i.tipo]||LISTAS.checklist).q[k]||"",Respuesta:c.r==="si"?"Sí":c.r==="no"?"No":"",Observaciones:E(c.obs)}))),
     "Herramientas":regs(eq).flatMap(r=>(r.items||[]).map(t=>({Fecha:fmtF(r.creado),Tarea:E(r.tarea),Persona:E(r.persona),Herramienta:t.desc,"Peso (kg)":E(t.peso),Amarre:AMARRE[t.amarre]||"",Bajó:t.bajo?"Sí":"No",Registro:r.estado==="cerrado"?"Cerrado":"Abierto"}))),
     "Caídas":caidas(eq).map(c=>({Fecha:fmtF(c.fecha),Zona:E(c.zona),Objeto:E(c.objeto),"Masa (kg)":E(c.masa),"Altura (m)":E(c.altura),Consecuencia:CONS[c.cons]?CONS[c.cons].t:"",Lesionados:c.lesion==="si"?"Sí":"No",Qué_pasó:E(c.desc),Causa:E(c.causa),Lección:E(c.leccion)})),
-    "Charlas":charlas(eq).filter(c=>c.estado==="cerrada").flatMap(c=>c.asistentes.map(a=>({Fecha:fmtF(c.creado),Tema:c.tema,Dictó:E(c.dicto),"Duración (min)":E(c.min),Asistente:a.n,Firmó:a.firma?"Sí":"No"}))),
     "Libro":lb.zonas.flatMap(z=>z.items.map(it=>({Código:codigo(eq,z,it),Zona:z.nombre,Acceso:z.acceso==="roja"?"Zona roja":z.acceso==="verde"?"Zona verde":"",Componente:it.desc,Riesgo:RIESGO_TXT[it.riesgo||""],"Fijación primaria":E(it.primaria),"Retención secundaria":E(it.secundaria),"Aseguramiento de seguridad":E(it.seguridad),"Qué verificar":E(it.criterio),Frecuencia:FREC[it.frec]?FREC[it.frec].t:"Mensual",Temporario:it.temp==="si"?("Sí"+(it.retiro?", retirar el "+fmtF(it.retiro):"")):""})))
   };
   const wb=XLSX.utils.book_new();
@@ -947,73 +940,7 @@ async function exportarExcel(eq){
 }
 
 /* ============ Capacitar ============ */
-function vCapacitar(eq){
-  const t=UI.capTab||"calc";
-  const tabs=`<div class="filters" role="group" aria-label="Capacitar">${[["calc","Calculadora"],["charla","Charla 5 min"]].map(([k,x])=>`<button aria-pressed="${t===k}" data-act="capTab" data-v="${k}">${x}</button>`).join("")}</div>`;
-  return tabs+(t==="charla"?vCharla(eq):vCalc());
-}
-const TEMAS=[
- {t:"Fijación confiable: las 3 barreras",f:"DROPS · Reliable Securing",x:"DROPS dice que todo lo que está en altura tiene que estar asegurado con tres barreras: la fijación primaria, que lo sostiene; la retención secundaria, que traba esa fijación; y el aseguramiento de seguridad, que lo retiene si todo lo demás falla. Un objeto cae solo cuando fallan todas.",ej:{o:"Un reflector de 4 kg",m:4,h:12},a:["Antes de subir, miramos que cada fijación tenga su traba.","Si algo puede caer sobre alguien, tiene que tener eslinga de seguridad.","Si falta una barrera, no se sigue: se reporta como hallazgo."],q:"¿Conocen algo en el equipo que tenga una sola barrera?"},
- {t:"Chavetas, seguros y tuercas",f:"DROPS · Reliable Securing",x:"Las uniones abulonadas y los pernos se aflojan con la vibración. Por eso DROPS pide que siempre tengan una traba: chaveta, tuerca autofrenante o arandela de bloqueo. La doble tuerca no es una traba confiable.",ej:{o:"Un perno de 0,5 kg",m:0.5,h:15},a:["Chaveta del tamaño del agujero y con las patas abiertas.","Nunca un clavo, un alambre o un precinto en lugar de la chaveta.","Chaveta o tuerca de nailon que se saca, se cambia por una nueva."],q:"¿Dónde vieron un seguro improvisado?"},
- {t:"Eslingas de seguridad",f:"DROPS · Reliable Securing",x:"La eslinga de seguridad es la última barrera: si la fijación falla, es lo único que evita que el objeto caiga. Para que sirva, tiene que estar bien elegida y bien colocada.",ej:{o:"Un reflector de 6 kg",m:6,h:10},a:["Certificada y apta para el peso del objeto.","Atada a la estructura, nunca al mismo soporte que puede fallar.","Lo más corta posible, sin nudos, cortes ni hilos rotos."],q:"¿Vieron alguna eslinga larga o atada al mismo soporte?"},
- {t:"Herramientas en altura",f:"DROPS · Control de herramientas en altura",x:"Las herramientas que se caen son una de las causas más comunes de caída de objetos. DROPS pide controlarlas: registrar lo que sube, atarlo y contar todo al bajar.",ej:{o:"Una llave de 1 kg",m:1,h:20},a:["Toda herramienta que sube se anota en el registro.","Hasta 5 kg, atada a la muñeca o al cinturón. Más de 5 kg, a la estructura, nunca a la persona.","Al terminar se cuenta todo: nada queda arriba."],q:"¿Qué herramienta subimos alguna vez sin atar?"},
- {t:"Zona roja",f:"DROPS · Zonas rojas y zonas prohibidas",x:"Debajo de un trabajo o una maniobra en altura hay riesgo de que caigan objetos. DROPS pide marcar esas áreas como zona roja y controlar quién entra.",ej:{o:"Un grillete de 2 kg",m:2,h:15},a:["Durante la maniobra nadie entra a la zona roja.","Se entra solo con autorización del responsable y con la maniobra detenida.","La zona queda delimitada y señalizada."],q:"¿Quién autoriza hoy el ingreso a la zona roja?"},
- {t:"Chequeo de colisión",f:"DROPS · Chequeos de colisión",x:"Cuando el aparejo o el piso de enganche se mueven, cualquier cosa en su recorrido se puede enganchar y arrancar objetos desde arriba. DROPS pide revisar el recorrido antes de cada movimiento.",ej:{o:"Una grampa de 3 kg",m:3,h:18},a:["Antes de mover, el recorrido tiene que estar libre.","Mangueras, cables y eslingas asegurados lejos del recorrido.","Comunicación confirmada entre maquinista y enganchador."],q:"¿Qué se puede enganchar hoy en nuestro recorrido?"},
- {t:"Inspección después de un evento",f:"DROPS · Inspección",x:"Una tijera, un martilleo, viento fuerte o un enganche pueden aflojar fijaciones que estaban bien. DROPS pide inspeccionar antes de volver a trabajar.",ej:{o:"Un bulón de 0,3 kg",m:0.3,h:25},a:["Después de un evento se para y se revisa antes de seguir.","Se revisa sobre todo la corona, el piso de enganche y las luminarias.","La revisión queda registrada."],q:"¿Cuándo fue el último evento que nos obligó a revisar?"},
- {t:"Orden en altura",f:"DROPS · Buenas prácticas en el lugar de trabajo",x:"Bulones, chavetas, repuestos o herramientas que quedan sueltos arriba son caídas esperando pasar. El orden en altura es prevención.",ej:{o:"Una tuerca de 0,2 kg",m:0.2,h:20},a:["Nada suelto en el piso de enganche ni en la torre.","Repuestos chicos siempre en un bolso con cierre.","Antes de bajar, una recorrida visual."],q:"¿Qué encontramos suelto la última vez?"},
- {t:"Corrosión",f:"DROPS · Reliable Securing",x:"La corrosión debilita bulones, soldaduras y soportes sin que se note de lejos. DROPS advierte especialmente cuando se mezclan metales distintos, porque se corroen más rápido.",ej:{o:"Un bulón corroído de 0,5 kg",m:0.5,h:20},a:["En la inspección, miramos de cerca bulones, soldaduras y soportes.","Óxido que avanza o metal que se descascara se reporta.","No mezclar metales distintos en una misma unión sin aislarlos."],q:"¿Qué componente del equipo vieron con corrosión?"},
- {t:"Viento y clima",f:"DROPS · Clima adverso",x:"El viento fuerte mueve lo que no está bien asegurado y hace que los objetos caigan más lejos de lo esperado. DROPS pide asegurar todo antes de que empeore el clima.",ej:{o:"Una tapa de 2 kg",m:2,h:15},a:["Con pronóstico de viento, aseguramos o bajamos lo que esté suelto.","Respetamos el límite de viento del equipo para trabajar en altura.","Después del viento fuerte, inspección del mástil."],q:"¿Cuál es el límite de viento de nuestro equipo?"},
- {t:"Equipos temporarios",f:"DROPS · Gestión del cambio",x:"Lo que se agrega en altura por un trabajo puntual, como un reflector o una polea, suele quedar sin control. DROPS pide registrarlo, asegurarlo igual que lo fijo y retirarlo cuando termina el trabajo.",ej:{o:"Un reflector provisorio de 5 kg",m:5,h:12},a:["Todo lo que se agrega en altura se anota con fecha de retiro.","Se asegura con las mismas 3 barreras que lo fijo.","Cuando termina el trabajo, se retira y se registra."],q:"¿Qué hay hoy en altura que no debería estar?"},
- {t:"Planificar antes de subir",f:"DROPS · Planificación y charla previa",x:"La mayoría de las caídas se evitan antes de empezar. DROPS pide planificar el trabajo en altura: qué sube, qué puede caer y quién queda debajo.",ej:{o:"Una llave de 2 kg",m:2,h:10},a:["Hacemos el ATS antes del trabajo en altura.","Definimos qué herramientas suben y cómo se atan.","Despejamos y delimitamos el área de abajo."],q:"¿Qué trabajo en altura tenemos hoy y qué puede caer?"}
-];
-const temaDelDia=()=>{const d=new Date();return Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%TEMAS.length};
-function textoCharla(idx){const T=TEMAS[idx]||TEMAS[0];const k=consecuencia(T.ej.m,T.ej.h);
-  return [T.x,`¿Por qué importa? ${T.ej.o} que cae desde ${T.ej.h} m llega al piso con ${Math.round(k.e)} J de energía: la consecuencia potencial es ${CONS[k.c].t.toLowerCase()}.`,
-   `¿Qué hacemos hoy? ${T.a.join(" ")}`,`Para el grupo: ${T.q} Y además, ¿qué vieron hoy que pueda caer? Si aparece algo, lo anotamos como hallazgo.`]}
-const charlas=eq=>Object.values(S.data.charlas).filter(c=>eq&&c.equipoId===eq.id).sort((a,b)=>(b.creado||"").localeCompare(a.creado||""));
-function vCharla(eq){
-  const ab=charlas(eq).find(c=>c.estado==="abierta");
-  // Compatible con charlas abiertas guardadas por versiones anteriores (sin idx ni texto).
-  const idx=ab?(ab.idx!==undefined?ab.idx:Math.max(0,TEMAS.findIndex(x=>x.t===ab.tema))):(UI.chTema===undefined?temaDelDia():UI.chTema);
-  const T=TEMAS[idx]||TEMAS[0];
-  const texto=ab?(ab.texto||(ab.secciones||[]).map(sc=>[sc.t,sc.x,...(sc.l||[])].filter(Boolean).join(": "))):textoCharla(idx);
-  const titulo=ab?(ab.tema||T.t):T.t,fuente=ab?(ab.fuente||(ab.texto?T.f:"")):T.f;
-  const hist=charlas(eq).filter(c=>c.estado==="cerrada");
-  const prev=[...new Set(charlas(eq).flatMap(c=>c.asistentes.map(a=>a.n)))].filter(n=>!(ab&&ab.asistentes.some(a=>a.n===n))).slice(0,12);
-  const d=draft&&draft.charlaForm?draft:(draft={charlaForm:true,nombre:"",firmaAs:null});
-  const as=ab?ab.asistentes:[];const dicto=ab?ab.dicto||"":(UI.chDicto??UI.inspector??"");
-  return `<h1>Charla de 5 minutos</h1><p class="small muted">Para leer en voz alta antes de empezar las tareas.</p>
-  <h2 style="margin-top:14px">${esc(titulo)}</h2>
-  ${texto.map(x=>`<p style="font-size:1.05rem;line-height:1.55;margin:0 0 10px">${esc(x)}</p>`).join("")}
-  <p class="small muted">${fuente?`Fuente: ${esc(fuente)} (DROPS Forum).`:""}${ab?"":` <button class="link small" data-act="chTema" data-v="${(idx+1)%TEMAS.length}">Cambiar por otro tema</button>`}</p>
-  ${S.readOnly?"":`<h2 style="margin-top:18px">Asistentes</h2>
-  ${as.length?as.map((a,j)=>`<div class="row between" style="border-top:1px solid var(--line);padding:6px 0"><b>${esc(a.n)}</b><span class="row" style="gap:8px">${a.firma?`<img src="${a.firma}" alt="Firma de ${esc(a.n)}" style="height:34px;background:#fff;border-radius:4px">`:""}<button class="link small" data-act="quitarAs" data-v="${j}">Quitar</button></span></div>`).join(""):`<p class="small muted">Cada asistente escribe su nombre y firma.</p>`}
-  ${prev.length?`<div class="row wrapflex" style="gap:6px;margin:6px 0">${prev.map(n=>`<button class="chip" style="border:1px solid var(--line);cursor:pointer" data-act="asRapido" data-v="${esc(n)}">${esc(n)}</button>`).join("")}</div>`:""}
-  <label class="f" for="asN">Nombre</label><input class="t" id="asN" data-draft="nombre" value="${esc(d.nombre)}" autocomplete="off">
-  <label class="f">Firma</label><canvas class="firma" id="firmaAs" aria-label="Recuadro para firmar"></canvas>
-  <div class="row" style="gap:8px;margin-top:8px"><button class="btn" style="flex:2" data-act="addAs" data-v="${idx}">+ Agregar asistente</button><button class="btn ghost" style="flex:1" data-act="limpiarAs">Borrar firma</button></div>
-  <label class="f" for="chD">Dictó la charla (profesional de HSE o jefe de equipo)</label><input class="t" id="chD" data-chd="1" value="${esc(dicto)}" placeholder="Nombre">
-  <button class="btn primary block" style="margin-top:14px" data-act="cerrarCharla" ${as.length&&dicto.trim()?"":"disabled"}>Cerrar y registrar charla</button>
-  <p class="small muted" style="text-align:center">${!as.length?"Agregá al menos un asistente para cerrar.":!dicto.trim()?"Completá quién dictó la charla.":"Queda registrada con fecha, tema, quién dictó y firmas."}</p>
-  ${ab?`<button class="link small" data-act="borrarCharla" data-v="${ab.id}">Descartar esta charla</button>`:""}`}
-  <h2 style="margin-top:22px">Charlas dadas</h2>
-  ${hist.length?hist.map(c=>`<div class="row between wrapflex" style="border-top:1px solid var(--line);padding:8px 0"><span><b>${esc(c.tema)}</b><br><span class="small muted">${fmtF(c.creado)} · ${c.asistentes.length} ${c.asistentes.length===1?"asistente":"asistentes"} · dictó ${esc(c.dicto||"—")}</span></span><button class="link small" data-act="pdfCharla" data-v="${c.id}">PDF</button></div>`).join(""):`<p class="muted">Todavía no hay charlas registradas.</p>`}`;
-}
-async function pdfCharla(id){
-  const c=S.data.charlas[id];const eq=S.data.equipos[c.equipoId];if(!c||!eq)return;
-  toast("Preparando la constancia…");
-  try{await cargarPDF()}catch(e){toast("No se pudo cargar el generador de PDF. Revisá la conexión a internet.");return}
-  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});const W=210;let y=14;
-  doc.setFillColor(191,47,27);doc.rect(0,0,W,12,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(pdfTxt("CHARLA DE SEGURIDAD - PREVENCIÓN DE CAÍDA DE OBJETOS"),10,8);
-  doc.setTextColor(30);doc.setFontSize(10);y=20;
-  doc.setFont("helvetica","normal");doc.text(pdfTxt(`${EMP.nombre?EMP.nombre+" · ":""}Equipo: ${eq.nombre}   Fecha: ${fmtF(c.creado)}   Duración: ${c.min||"-"} min   Dictó: ${c.dicto||"-"}`),10,y);y+=8;
-  doc.setFont("helvetica","bold");doc.text(pdfTxt("Tema: "+c.tema+(c.fuente?"   (Fuente: "+c.fuente+", DROPS Forum)":"")),10,y);y+=6;doc.text("Contenido",10,y);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(9);
-  (c.texto||c.secciones.map(sc=>`${sc.t}: ${[sc.x,...sc.l].filter(Boolean).join(" ")}`)).forEach(x=>{const lines=doc.splitTextToSize(pdfTxt(x),W-20);doc.text(lines,10,y);y+=lines.length*4.2+2});
-  y+=4;doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Asistentes",10,y);y+=3;
-  doc.autoTable({startY:y,head:[["#","Nombre","Firma"]],body:c.asistentes.map((a,j)=>[String(j+1),pdfTxt(a.n),""]),theme:"grid",headStyles:{fillColor:[52,69,77]},styles:{fontSize:9,minCellHeight:14,valign:"middle"},columnStyles:{0:{cellWidth:10},1:{cellWidth:90},2:{cellWidth:"auto"}},
-    didDrawCell:dd=>{if(dd.section==="body"&&dd.column.index===2){const a=c.asistentes[dd.row.index];if(a&&a.firma){try{doc.addImage(a.firma,"PNG",dd.cell.x+2,dd.cell.y+1,36,12)}catch(e){}}}}});
-  await guardarArchivo(`Charla_DROPS_${eq.nombre.replace(/[^\w-]+/g,"_")}_${ymd(new Date(c.creado))}.pdf`,doc.output("blob"));
-}
+function vCapacitar(eq){return vCalc()}
 
 /* ============ Panel de indicadores ============ */
 function vPanel(eq){
@@ -1042,8 +969,6 @@ function vPanel(eq){
   if(ctrls.length)acc.push({t:`Hacer ${ctrls.length} ${pl(ctrls.length,"control diario o semanal","controles diarios o semanales")}`,d:"Componentes con control más frecuente que el mensual.",a:"irZonaP",v:ctrls[0].id,c:"warn"});
   const rojasSin=lb.zonas.filter(z=>z.acceso==="roja"&&!z.autoriza);
   if(rojasSin.length)acc.push({t:`Definir quién autoriza el ingreso a ${rojasSin.length} ${pl(rojasSin.length,"zona roja","zonas rojas")}`,d:"Sin responsable, cualquiera puede entrar.",a:"irZonaP",v:rojasSin[0].id,c:"warn"});
-  const uc=charlas(eq).find(c=>c.estado==="cerrada");
-  if(!uc||dias(uc.creado,new Date())>7)acc.push({t:"Dar la charla de 5 minutos",d:uc?`La última fue hace ${dias(uc.creado,new Date())} días.`:"Todavía no se dio ninguna. Elegís el tema y la app la arma.",a:"irCharla",v:"",c:"warn"});
   if(sinResp)acc.push({t:`Asignar responsable a ${sinResp} ${pl(sinResp,"hallazgo","hallazgos")}`,d:"Sin responsable, nadie lo cierra.",a:"irHall",v:"abiertos",c:"warn"});
   const est=acc.some(x=>x.c==="mal")?["mal","Requiere atención"]:acc.length?["warn","Con pendientes"]:["bien","Todo al día"];
   const porZona=lb.zonas.map(z=>({z,n:ab.filter(h=>z.items.some(it=>it.id===h.itemId)).length})).filter(x=>x.n).sort((a,b)=>b.n-a.n).slice(0,5);
@@ -1341,7 +1266,7 @@ function afterRender(){
     requestAnimationFrame(step);
   });
   document.querySelectorAll(".anim .mz").forEach((el,k)=>el.style.animationDelay=(k*35)+"ms");
-  if(UI.tab==="calc"&&!UI.todos&&(UI.capTab||"calc")==="calc"){
+  if(UI.tab==="calc"&&!UI.todos){
     const key=UI.calc.m+"|"+UI.calc.h;
     if(UI.calcKey!==key){UI.calcKey=key;
       document.querySelectorAll("#cPt animate").forEach(a=>{try{a.beginElement()}catch(e){}});
@@ -1350,9 +1275,7 @@ function afterRender(){
     }
   }
   const cv=document.getElementById("firmaCv");if(cv)montarFirma(cv);
-  const ca=document.getElementById("firmaAs");if(ca)montarPad(ca,()=>draft&&draft.firmaAs,d=>{if(draft)draft.firmaAs=d});
-  clearInterval(UI.chTimer);const tm=document.getElementById("chTime");
-  if(tm){const ch=S.data.charlas[tm.dataset.v];const f=()=>{if(!ch||!document.body.contains(tm)){clearInterval(UI.chTimer);return}const sg=Math.max(0,Math.floor((Date.now()-new Date(ch.creado))/1000));tm.textContent=`${Math.floor(sg/60)}:${String(sg%60).padStart(2,"0")}`};f();UI.chTimer=setInterval(f,1000)}
+
 }
 function caer(){const b=document.getElementById("fallBox");if(!b)return;b.classList.remove("go");void b.offsetWidth;b.classList.add("go")}
 function sello(txt){
@@ -1583,20 +1506,6 @@ document.addEventListener("click",e=>{
       if(equipos().some(x=>x.nombre.toLowerCase()===n.toLowerCase())){toast("Ya existe un equipo con ese nombre.");return}
       crearEquipo(n,$("#nPl").checked);UI.sheet=null;UI.tab="equipo";UI.zona=null;break}
     case"excel":exportarExcel(eq);return;
-    case"capTab":UI.capTab=v;draft=null;break;
-    case"irCharla":UI.todos=false;UI.tab="calc";UI.capTab="charla";window.scrollTo(0,0);break;
-    case"chTema":UI.chTema=+v;draft=null;break;
-    case"asRapido":if(draft){draft.nombre=v}break;
-    case"limpiarAs":if(draft)draft.firmaAs=null;break;
-    case"addAs":{const n=(draft&&draft.nombre||"").trim();if(!n){toast("Escribí el nombre del asistente.");return}if(!draft.firmaAs){toast("Falta la firma de "+n+".");return}
-      let ab=charlas(eq).find(c=>c.estado==="abierta");
-      if(!ab){const ix=+v;const T=TEMAS[ix];ab={id:uid(),equipoId:eq.id,idx:ix,tema:T.t,fuente:T.f,texto:textoCharla(ix),secciones:[],asistentes:[],dicto:UI.chDicto??UI.inspector??"",estado:"abierta",creado:new Date().toISOString()}}else ab=clone(ab);
-      if(ab.asistentes.some(a=>a.n.toLowerCase()===n.toLowerCase())){toast(n+" ya está en la lista.");return}
-      ab.asistentes.push({n,firma:draft.firmaAs});put("charlas",ab);draft={charlaForm:true,nombre:"",firmaAs:null};toast(n+" agregado.");break}
-    case"quitarAs":{const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.asistentes.splice(+v,1);put("charlas",ab);break}
-    case"cerrarCharla":{if(t.disabled)return;const ab=clone(charlas(eq).find(c=>c.estado==="abierta"));ab.estado="cerrada";ab.cierre=new Date().toISOString();ab.min=Math.max(1,Math.round((Date.now()-new Date(ab.creado))/60000));put("charlas",ab);UI.chDicto=undefined;UI.chTema=undefined;draft=null;sello("Charla registrada");break}
-    case"borrarCharla":{if(!confirm("¿Descartar esta charla?"))return;del("charlas",v);draft=null;break}
-    case"pdfCharla":pdfCharla(v);return;
     case"setAcceso":{const lb=clone(libro(eq));const z=lb.zonas.find(x=>x.id===t.dataset.z);const aut=($("#zAut")||{}).value||"";z.acceso=v;z.autoriza=aut.trim();guardarLibro(lb);break}
     case"guardarAcceso":{const lb=clone(libro(eq));const z=lb.zonas.find(x=>x.id===t.dataset.z);z.autoriza=(($("#zAut")||{}).value||"").trim();guardarLibro(lb);UI.sheet=null;toast("Acceso guardado.");break}
     case"nuevoReg":{const r={id:uid(),equipoId:eq.id,tarea:"",persona:UI.inspector||"",items:[],estado:"abierto",creado:new Date().toISOString()};put("registros",r);UI.sheet="reg:"+r.id;break}
@@ -1657,7 +1566,7 @@ document.addEventListener("click",e=>{
       h.estado="cerrado";h.cierre={fecha:new Date().toISOString(),comentario:com,foto:draft.foto,por:UI.inspector||""};put("hallazgos",h);UI.sheet=null;draft=null;toast("Hallazgo cerrado.");break}
     case"reabrir":{const h=S.data.hallazgos[v];h.estado="abierto";delete h.cierre;put("hallazgos",h);break}
   }
-  if(["tab","zona","back","irEq","continuar","salirInsp","irHall","irZonaP","irCharla"].includes(a))withVT(render);else render();
+  if(["tab","zona","back","irEq","continuar","salirInsp","irHall","irZonaP"].includes(a))withVT(render);else render();
 });
 document.addEventListener("input",e=>{
   const el=e.target,ds=el.dataset;const insp=UI.insp?S.data.inspecciones[UI.insp]:(UI.tab==="equipo"&&UI.zona&&eqAct()?inspFicha(eqAct(),false):null);
@@ -1665,7 +1574,6 @@ document.addEventListener("input",e=>{
   else if(ds.obs&&insp){const r=insp.resultados[ds.obs]||(insp.resultados[ds.obs]={});const was=!!(r.obs||"").trim();r.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
   else if(ds.resp&&insp){(insp.resultados[ds.resp]||(insp.resultados[ds.resp]={})).responsable=el.value;put("inspecciones",insp,900)}
   else if(ds.ckobs&&insp){const c=insp.checklist[+ds.ckobs];const was=!!(c.obs||"").trim();c.obs=el.value;put("inspecciones",insp,900);if(was!==!!el.value.trim())render()}
-  else if(ds.chd){const ab=charlas(eqAct()).find(c=>c.estado==="abierta");const was=!!((ab?ab.dicto:UI.chDicto)||"").trim();if(ab){ab.dicto=el.value;put("charlas",ab,900)}else UI.chDicto=el.value;if(was!==!!el.value.trim())render()}
   else if(ds.reg&&UI.sheet&&UI.sheet.startsWith("reg:")){const r=S.data.registros[UI.sheet.slice(4)];if(r){r[ds.reg]=el.value;put("registros",r,900)}}
   else if(ds.draft&&draft){draft[ds.draft]=el.value;if(ds.draft==="masa"||ds.draft==="altura")render()}
   else if(ds.calc){UI.calc[ds.calc]=el.value;render()}
