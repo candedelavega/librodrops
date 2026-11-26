@@ -224,8 +224,8 @@ table.tq td.n.r{color:var(--red)}
 #v3d .cv{position:relative;flex:1;min-height:0}
 #v3d canvas{display:block;width:100%;height:100%}
 #v3d .rot{position:absolute;left:10px;top:10px;background:rgba(217,154,0,.92);color:#1C262B;font-size:.78rem;font-weight:700;padding:4px 9px;border-radius:4px;pointer-events:none}
-#v3d .tip{position:absolute;pointer-events:none;background:#1C262B;border:1px solid #98A5AA;color:#fff;font-size:.8rem;line-height:1.35;padding:6px 10px;border-radius:6px;transform:translate(-50%,calc(-100% - 14px));width:max-content;max-width:min(300px,80vw);display:none}
-#v3d .tip b{color:#F2B705}#v3d .tip .tz{color:#98A5AA;font-size:.74rem}#v3d .tip dl{margin:5px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px}#v3d .tip dt{color:#98A5AA}#v3d .tip dd{margin:0}#v3d .tip .th{margin-top:5px;color:#98A5AA;font-size:.72rem}
+#v3d .tip{position:absolute;pointer-events:none;background:#1C262B;border:1px solid #98A5AA;color:#fff;font-size:.8rem;line-height:1.35;padding:6px 10px;border-radius:6px;transform:translate(-50%,calc(-100% - 14px));width:max-content;max-width:min(340px,84vw);display:none}
+#v3d .tip b{color:#F2B705}#v3d .tip .tz{color:#98A5AA;font-size:.74rem}#v3d .tip dl{margin:5px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px}#v3d .tip dt{color:#98A5AA}#v3d .tip dd{margin:0}#v3d .tip .qr{margin-top:6px;padding:6px 8px;background:rgba(242,183,5,.12);border-left:3px solid #F2B705;border-radius:3px}#v3d .tip .qr span{display:block;color:#F2B705;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}#v3d .tip .th{margin-top:5px;color:#98A5AA;font-size:.72rem}
 #v3d .vl{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.78rem;padding:8px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #2B363B}
 #v3d .vl i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 #v3d .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#98A5AA}
@@ -1543,7 +1543,7 @@ function pintar3D(){
     const st=r&&r.estado==="mal"?"mal":r&&r.estado==="bien"?"bien":fichaIncompleta(it)||sinSec(it)?"inc":"sin";
     const col={mal:COL3.rojo,bien:COL3.verde,inc:COL3.ambar,sin:COL3.ambar}[st];
     const m=new T.Mesh(geo,new T.MeshBasicMaterial({color:col}));m.position.set(p[0],p[1],p[2]);
-    m.userData={pid,itemId:it.id,zid:z.id,desc:it.desc,st};V3.marcas.add(m);
+    m.userData={pid,itemId:it.id,zid:z.id,desc:it.desc,st,fecha:r&&r.fecha||null,enCurso:!!(ab&&ab.resultados[it.id]&&ab.resultados[it.id].estado)};V3.marcas.add(m);
   }));
 }
 function tween3D(target,pos){
@@ -1571,7 +1571,8 @@ function tip3D(o){
     const ST={sin:"Por inspeccionar",bien:"Bien",mal:"Mal",inc:"Por inspeccionar · ficha incompleta"};
     const fila=(t,v)=>v?`<dt>${t}</dt><dd>${esc(v)}</dd>`:"";
     tp.innerHTML=`<b>${esc(u.pid)}</b> · ${esc(u.desc)}${z?`<div class="tz">${esc(z.nombre)}</div>`:""}
-      <dl>${fila("Estado",ST[u.st])}${fila("Riesgo",it.riesgo)}${fila("Fijación",it.primaria)}${fila("Retención",it.secundaria)}${fila("Seguridad",it.seguridad)}${it.masa&&it.altura?fila("Masa / altura",it.masa+" kg / "+it.altura+" m"):""}</dl>
+      ${it.criterio?`<div class="qr"><span>Qué revisar</span>${esc(it.criterio)}</div>`:""}
+      <dl>${fila("Estado",ST[u.st])}${fila("Última inspección",u.enCurso?"En la inspección en curso":u.fecha?fmtF(String(u.fecha).slice(0,10)):"Nunca inspeccionado")}${fila("Riesgo",it.riesgo)}${fila("Fijación",it.primaria)}${fila("Retención",it.secundaria)}${fila("Seguridad",it.seguridad)}${it.masa&&it.altura?fila("Masa / altura",it.masa+" kg / "+it.altura+" m"):""}</dl>
       ${V3.sel===o?`<div class="th">Tocá de nuevo para abrir la ficha</div>`:""}`;
   }else tp.innerHTML=`<b>${esc(u.z?u.z.nombre:u.zona)}</b>`;
   tp.style.display="block";
