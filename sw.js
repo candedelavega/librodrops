@@ -1,12 +1,13 @@
 // Service worker: la app abre sin conexión.
 // Al publicar cambios, subí el número de versión para forzar la actualización.
-const CACHE = "libro-drops-v13";
+const CACHE = "libro-drops-v14";
 const ASSETS = [
   "./",
   "./index.html",
   "./equipo_drops.json",
   "./manifest.webmanifest",
   "./pwa.js",
+  "./lib/supabase.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/apple-touch-icon.png"
@@ -27,6 +28,8 @@ self.addEventListener("activate", e => {
 // Red primero (para recibir siempre la última versión); si no hay señal, usa la copia guardada.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  // Las consultas a Supabase van siempre a internet (no se guardan en caché).
+  if (new URL(e.request.url).hostname.endsWith("supabase.co")) return;
   e.respondWith(
     fetch(e.request)
       .then(res => {

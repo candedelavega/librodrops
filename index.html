@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Libro DROPS</title>
 <script src="pwa.js"></script>
+<script src="lib/supabase.js"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%231F2B31%22/%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23F2B300%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20stroke-width%3D%223.6%22%20d%3D%22M16%2053%2027%2011h5l11%2042%22/%3E%3Cpath%20stroke-width%3D%223%22%20d%3D%22M22.3%2029h14.4M18.6%2043h21.8M22.3%2029l18.1%2014M36.7%2029%2018.6%2043%22/%3E%3Cpath%20stroke-width%3D%223.6%22%20d%3D%22M11%2053h42M32%2011h15%22/%3E%3Cpath%20stroke-width%3D%222.2%22%20d%3D%22M47%2011v11%22/%3E%3C/g%3E%3Crect%20x%3D%2242%22%20y%3D%2222%22%20width%3D%2210%22%20height%3D%2210%22%20rx%3D%222.4%22%20fill%3D%22%23E5482F%22/%3E%3C/svg%3E">
 <meta name="theme-color" content="#1F2B31">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -485,7 +486,55 @@ const LKEY="libroDrops.v1";
 const timers={},inflight={},queued={};
 function localSave(){if(S.mode!=="local")return;try{localStorage.setItem(LKEY,JSON.stringify(S.data))}catch(e){toast("No hay más espacio en este navegador. Borrá fotos o usá la versión publicada.")}}
 function localLoad(){try{const r=localStorage.getItem(LKEY);if(r){const d=JSON.parse(r);COLS.forEach(c=>S.data[c]=d[c]||{})}}catch(e){}}
+/* ============ Supabase (datos compartidos por empresa) ============ */
+const SUPA_URL="https://nbveslscdpjoksmzazbs.supabase.co";
+const SUPA_KEY="sb_publishable_wUZRBrfaI_nj8orzFpukzA_7iMA8bwB"; // clave pública: la seguridad la dan las reglas RLS
+const sb=window.supabase?supabase.createClient(SUPA_URL,SUPA_KEY):null;
+const CACHE_KEY="libroDrops.cacheSupa";
+const supaT={};
+function supaGuardar(col,obj,delay){
+  clearTimeout(supaT[col+obj.id]);
+  supaT[col+obj.id]=setTimeout(async()=>{
+    const {error}=await sb.from("datos").upsert({empresa_id:S.empresa,col,id:obj.id,data:obj,updated_at:new Date().toISOString()});
+    if(error)toast("No se pudo guardar: revisá la conexión.");else guardarCache();
+  },delay||0);
+}
+function guardarCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({empresa:S.empresa,nombre:S.empresaNombre,data:S.data,emp:EMP}))}catch(e){}}
+async function supaCargar(){
+  try{
+    const {data:m,error:e1}=await sb.from("miembros").select("empresa_id,rol,empresas(nombre)").limit(1).maybeSingle();
+    if(e1)throw e1;
+    if(!m){S.mode="login";$("#app").innerHTML=vLogin("Tu usuario no tiene una empresa asignada. Pedile al administrador que te agregue.");return}
+    S.empresa=m.empresa_id;S.empresaNombre=(m.empresas&&m.empresas.nombre)||"";S.rol=m.rol;
+    const {data,error:e2}=await sb.from("datos").select("col,id,data").eq("empresa_id",S.empresa);
+    if(e2)throw e2;
+    COLS.forEach(c=>S.data[c]={});
+    (data||[]).forEach(r=>{if(r.col==="config"&&r.id==="empresa")Object.assign(EMP,r.data);else if(S.data[r.col])S.data[r.col][r.id]=r.data});
+    if(!EMP.nombre&&S.empresaNombre)EMP.nombre=S.empresaNombre;
+    guardarCache();
+    sb.channel("datos-"+S.empresa).on("postgres_changes",{event:"*",schema:"public",table:"datos",filter:`empresa_id=eq.${S.empresa}`},p=>{
+      if(p.eventType==="DELETE"){const o=p.old||{};if(S.data[o.col])delete S.data[o.col][o.id]}
+      else{const r=p.new;if(r.col==="config"&&r.id==="empresa")Object.assign(EMP,r.data);else if(S.data[r.col])S.data[r.col][r.id]=r.data}
+      guardarCache();render();
+    }).subscribe();
+    S.mode="supa";S.readOnly=false;
+  }catch(err){
+    // Sin conexión: muestra la última copia descargada, solo para consultar.
+    let c=null;try{c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null")}catch(e){}
+    if(!c){S.mode="login";$("#app").innerHTML=vLogin("No hay conexión. Conectate a internet para ingresar la primera vez.");return}
+    S.empresa=c.empresa;S.empresaNombre=c.nombre;COLS.forEach(k=>S.data[k]=c.data[k]||{});if(c.emp)Object.assign(EMP,c.emp);
+    S.mode="supa";S.readOnly=true;S.sinConexion=true;
+  }
+  boot();
+}
+function vLogin(msg){return `<main class="wrap"><div class="stack" style="padding-top:24px"><div class="hero">${LOGO}<div><h1>Libro DROPS</h1><p class="muted">Ingresá con el usuario que te dio tu empresa.</p></div></div>
+  ${msg?`<div class="estado warn"><p>${esc(msg)}</p></div>`:""}
+  <div class="panel"><label class="f" for="lgE">Email</label><input class="t" id="lgE" type="email" autocomplete="username" inputmode="email">
+  <label class="f" for="lgP">Contraseña</label><input class="t" id="lgP" type="password" autocomplete="current-password">
+  <button class="btn primary block" style="margin-top:14px" data-act="login">Ingresar</button></div></div></main>`}
+
 function put(col,obj,delay){
+  if(S.mode==="supa"){if(S.readOnly){toast("Sin conexión: no se puede guardar.");return}if(S.data[col])S.data[col][obj.id]=obj;supaGuardar(col,obj,delay);return}
   S.data[col][obj.id]=obj;
   syncToServer(col,obj);
   if(S.mode==="local"){localSave();return}
@@ -511,6 +560,7 @@ async function dbWrite(path){
   if(queued[path]){delete queued[path];dbWrite(path)}
 }
 async function del(col,id){
+  if(S.mode==="supa"){if(S.readOnly)return;delete S.data[col][id];const {error}=await sb.from("datos").delete().match({empresa_id:S.empresa,col,id});if(error)toast("No se pudo borrar: revisá la conexión.");else guardarCache();return}
   delete S.data[col][id];
   if(S.mode==="local"){localSave();return}
   try{await S.db.doc(col+"/"+id).delete()}catch(e){dbError(e)}
@@ -523,6 +573,9 @@ function dbError(e){
   else toast("No se pudo guardar. Revisá la conexión y volvé a intentar.");
 }
 async function initStore(){
+  if(sb&&!window.claude){const {data:{session}}=await sb.auth.getSession();
+    if(session){await supaCargar();return}
+    S.mode="login";$("#app").innerHTML=vLogin();return}
   const use=window.claude&&window.claude.use?window.claude.use.bind(window.claude):null;
   const db=use?await use("db").catch(()=>null):null;
   if(db){
@@ -717,7 +770,7 @@ const ICON={
 };
 const ICON3D='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>';
 function render(){
-  if(S.mode==="cargando"||UI.firmando)return;
+  if(S.mode==="cargando"||S.mode==="login"||UI.firmando)return;
   const a=document.activeElement,fid=a&&a.id,ss=a&&a.selectionStart,se=a&&a.selectionEnd,sy=window.scrollY;
   const eq=eqAct();if(eq&&UI.equipo!==eq.id)setEquipo(eq.id);
   let body;
@@ -735,7 +788,7 @@ function render(){
     ${equipos().length?`<select class="eq-select" id="eqSel" aria-label="Equipo">${equipos().length>1?`<option value="__todos" ${UI.todos?"selected":""}>Todos los equipos</option>`:""}${equipos().map(e=>`<option value="${e.id}" ${eq&&e.id===eq.id&&!UI.todos?"selected":""}>${esc(e.nombre)}</option>`).join("")}<option value="__nuevo">+ Nuevo equipo</option></select>`:""}
   </div></header>
   <main class="wrap">
-    ${S.mode==="local"?(window.claude?`<div class="banner">Vista previa: los datos se guardan solo en este navegador. En la versión publicada se comparten con el equipo.</div>`:`<div class="banner">Los datos se guardan en este dispositivo.</div>`):""}
+    ${S.mode==="supa"?`<div class="banner">${S.sinConexion?"Sin conexión: estás viendo la última copia descargada. Para cargar datos, conectate.":`Datos compartidos de ${esc(S.empresaNombre||EMP.nombre||"tu empresa")}.`}</div>`:S.mode==="local"?(window.claude?`<div class="banner">Vista previa: los datos se guardan solo en este navegador. En la versión publicada se comparten con el equipo.</div>`:`<div class="banner">Los datos se guardan en este dispositivo.</div>`):""}
     ${S.readOnly?`<div class="banner">Acceso de solo lectura: podés consultar el libro, pero los cambios no se guardan.</div>`:""}
     ${body}
   </main>
@@ -1081,6 +1134,26 @@ async function exportarExcel(eq){
   await guardarArchivo(`Libro_DROPS_${eq.nombre.replace(/[^\w-]+/g,"_")}_${hoy()}.xlsx`,new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
 }
 
+/* ============ Copia de seguridad ============ */
+async function exportarCopia(){
+  const datos={app:"Libro DROPS",version:1,fecha:new Date().toISOString(),empresa:EMP,data:S.data};
+  await guardarArchivo(`Copia_Libro_DROPS_${hoy()}.json`,new Blob([JSON.stringify(datos)],{type:"application/json"}));
+}
+function importarCopia(file){
+  const fr=new FileReader();
+  fr.onload=()=>{try{
+    const d=JSON.parse(fr.result);
+    if(d.app!=="Libro DROPS"||!d.data)throw 0;
+    if(!confirm(S.mode==="supa"?"Esto sube los datos de la copia a la base compartida de tu empresa. ¿Seguir?":"Esto reemplaza los datos de este dispositivo por los de la copia. ¿Seguir?"))return;
+    if(d.empresa){Object.assign(EMP,d.empresa);try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(x){}}
+    if(S.mode==="supa"){COLS.forEach(c=>Object.values(d.data[c]||{}).forEach(o=>put(c,o)));put("config",{id:"empresa",...EMP})}
+    else{COLS.forEach(c=>S.data[c]=d.data[c]||{});localSave()}
+    UI.sheet=null;render();toast("Copia restaurada.");
+  }catch(e){toast("El archivo no es una copia válida de Libro DROPS.")}};
+  fr.readAsText(file);
+}
+document.addEventListener("change",e=>{if(e.target.id==="copiaIn"&&e.target.files&&e.target.files[0])importarCopia(e.target.files[0])});
+
 /* ============ Panel de indicadores ============ */
 function metricasPanel(eq){
   const lb=libro(eq);
@@ -1265,6 +1338,9 @@ function vSheet(eq){
     <h3 style="margin-top:14px">Fuentes</h3>
     <ul class="small"><li>DROPS Forum: Recommended Practice y DROPS Reliable Securing.</li><li>DROPS Calculator: consecuencia según masa y altura de caída.</li><li>Plantilla base: revisala y adaptala a los procedimientos de tu empresa.</li></ul>
     <button class="btn ghost block" style="margin-top:10px" data-act="qr" data-v="">Etiquetas QR de todo el equipo</button>
+    <button class="btn ghost block" style="margin-top:8px" data-act="copia">Descargar copia de seguridad</button>
+    <label class="btn ghost block" style="margin-top:8px;text-align:center;display:block;line-height:24px">Restaurar copia<input type="file" accept=".json,application/json" id="copiaIn" hidden></label>
+    ${S.mode==="supa"?`<button class="btn ghost block" style="margin-top:8px" data-act="logout">Cerrar sesión</button>`:""}
     <button class="btn ghost block" style="margin-top:8px" data-act="sheet" data-v="empresa">Datos de la empresa${EMP.nombre?` · ${esc(EMP.nombre)}`:""}</button>
     <p class="small muted" style="margin-top:10px">Libro DROPS © 2026 Candela de la Vega. Todos los derechos reservados.</p>
     <p class="small muted">Una ficha está incompleta si le falta la fijación primaria, el aseguramiento de seguridad, el criterio de verificación o la clasificación de riesgo.</p>
@@ -1636,7 +1712,7 @@ function abrirDesdeEtiqueta(){
 window.addEventListener("hashchange",()=>{if(S.mode!=="cargando"&&abrirDesdeEtiqueta())render()});
 
 /* ============ Eventos ============ */
-document.addEventListener("click",e=>{
+document.addEventListener("click",async e=>{
   const t=e.target.closest("[data-act]");
   if(!t){return}
   if(t.dataset.act==="closeSheet"&&e.target.closest("[data-stop]")&&!e.target.closest("button[data-act=closeSheet]"))return;
@@ -1674,7 +1750,13 @@ document.addEventListener("click",e=>{
     case"qr":etiquetasQR(eq,v);return;
     case"irCodigo":{const c=($("#buscaCod").value||"").trim().toUpperCase();if(!c)return;const lb=libro(eq);let zz=null,ii=null;lb.zonas.forEach(z=>z.items.forEach(it=>{if(codigo(eq,z,it).toUpperCase()===c){zz=z;ii=it}}));
       if(!zz){toast("No hay ningún componente con el código "+c+".");return}UI.zona=zz.id;UI.irItem=ii.id;break}
-    case"guardarEmpresa":{const g=id=>($(id).value||"").trim();EMP={frecDias:($("#emF").value==="otra"?parseInt(g("#emFd"),10):parseInt($("#emF").value,10))||30,nombre:g("#emN"),mensual:g("#emM")||"Inspección DROPS",codMensual:g("#emC1"),codChecklist:g("#emC2"),codPost:g("#emC3"),url:g("#emU"),inspectores:g("#emI").split("\n").map(l=>l.split(";")).map(([n,v])=>({n:(n||"").trim(),vence:(v||"").trim()})).filter(p=>p.n)};try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(e){}UI.sheet=null;toast("Datos de la empresa guardados.");break}
+    case"login":{const btn=t;btn.disabled=true;btn.textContent="Ingresando…";
+      const {error}=await sb.auth.signInWithPassword({email:($("#lgE").value||"").trim(),password:$("#lgP").value});
+      if(error){btn.disabled=false;btn.textContent="Ingresar";toast(/invalid/i.test(error.message)?"Email o contraseña incorrectos.":"No se pudo ingresar: "+error.message);return}
+      await supaCargar();return}
+    case"logout":{if(!confirm("¿Cerrar sesión en este dispositivo?"))return;await sb.auth.signOut();try{localStorage.removeItem(CACHE_KEY)}catch(x){}location.reload();return}
+    case"copia":exportarCopia();return;
+    case"guardarEmpresa":{const g=id=>($(id).value||"").trim();EMP={frecDias:($("#emF").value==="otra"?parseInt(g("#emFd"),10):parseInt($("#emF").value,10))||30,nombre:g("#emN"),mensual:g("#emM")||"Inspección DROPS",codMensual:g("#emC1"),codChecklist:g("#emC2"),codPost:g("#emC3"),url:g("#emU"),inspectores:g("#emI").split("\n").map(l=>l.split(";")).map(([n,v])=>({n:(n||"").trim(),vence:(v||"").trim()})).filter(p=>p.n)};try{localStorage.setItem(EKEY,JSON.stringify(EMP))}catch(e){}if(S.mode==="supa")put("config",{id:"empresa",...EMP});UI.sheet=null;toast("Datos de la empresa guardados.");break}
     case"renombrar":{const n=($("#rnEq").value||"").trim();if(!n)return;eq.nombre=n;put("equipos",eq);UI.sheet=null;toast("Nombre guardado.");break}
     case"borrarEquipo":if(!confirm(`¿Borrar ${eq.nombre} con su libro, inspecciones y hallazgos? No se puede deshacer.`))return;
       insps(eq).forEach(i=>del("inspecciones",i.id));hallz(eq).forEach(h=>del("hallazgos",h.id));del("libros",eq.id);del("equipos",eq.id);UI.sheet=null;UI.equipo=null;break;
